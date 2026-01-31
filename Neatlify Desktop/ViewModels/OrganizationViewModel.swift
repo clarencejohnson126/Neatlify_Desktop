@@ -305,9 +305,9 @@ class OrganizationViewModel: ObservableObject {
                 let processedCount = min((index + 1) * 10, images.count)
                 statusMessage = "Analyzing images... \(processedCount)/\(images.count)"
 
-                // Add delay between batches to respect rate limits (10 images ~= 16k tokens, wait 30 seconds to stay under 30k/min)
+                // Small delay between batches to avoid rate limits
                 if index < imageBatches.count - 1 {
-                    try await Task.sleep(nanoseconds: 30_000_000_000) // 30 seconds
+                    try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
                 }
             }
         }
@@ -351,9 +351,9 @@ class OrganizationViewModel: ObservableObject {
                 let processedCount = min((index + 1) * 5, pdfs.count)
                 statusMessage = "Analyzing PDFs... \(processedCount)/\(pdfs.count)"
 
-                // Add delay between batches to respect rate limits (5 PDFs ~= 18k tokens, wait 35 seconds to stay under 30k/min)
+                // Small delay between batches
                 if index < pdfBatches.count - 1 {
-                    try await Task.sleep(nanoseconds: 35_000_000_000) // 35 seconds
+                    try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
                 }
             }
         }
@@ -374,7 +374,7 @@ class OrganizationViewModel: ObservableObject {
         let totalCount = scannedFiles.count
         let userSession = UserSession.load()
 
-        // Check hard cap first (local check that's always valid)
+        // Check hard cap first
         if totalCount > UserSession.maxFilesPerCleanup {
             errorMessage = "Maximum \(UserSession.maxFilesPerCleanup) files per cleanup. Please select fewer files."
             showError = true
@@ -383,70 +383,74 @@ class OrganizationViewModel: ObservableObject {
             return
         }
 
-        // If account is linked, ALWAYS check server first (local cache may be outdated)
-        if userSession.isAccountLinked {
-            Task {
-                statusMessage = "Verifying credits with server..."
-
-                let (serverAllowed, serverReason) = await userSession.canPerformCleanupServerSide(fileCount: totalCount)
-
-                await MainActor.run {
-                    if !serverAllowed {
-                        if serverReason?.contains("credits") == true ||
-                           serverReason?.contains("Insufficient") == true ||
-                           serverReason?.contains("No credits") == true {
-                            self.showPaywall = true
-                        } else {
-                            self.errorMessage = serverReason ?? "Server validation failed"
-                            self.showError = true
-                        }
-                        self.isOrganizing = false
-                        self.currentStep = .idle
-                        return
-                    }
-
-                    // Server approved - show preview
-                    self.pricingInfo = PricingInfo(
-                        totalFiles: totalCount,
-                        creditsAvailable: userSession.fileCredits,
-                        isFreeTrialEligible: false,
-                        reason: serverReason ?? "Credits verified"
-                    )
-
-                    self.currentStep = .awaitingConfirmation
-                    self.statusMessage = "Review organization plan"
-                    self.progress = 1.0
-                    self.showPreview = true
-                }
-            }
-        } else {
-            // No account linked - use local free trial validation
-            let (localAllowed, localReason) = userSession.canPerformCleanup(fileCount: totalCount)
-
-            if !localAllowed {
-                // Check if they need to link account or buy credits
-                if localReason?.contains("link") == true || localReason?.contains("credits") == true {
-                    showPaywall = true
-                } else {
-                    errorMessage = localReason ?? "Cannot perform cleanup"
-                    showError = true
-                }
-                isOrganizing = false
-                currentStep = .idle
-                return
-            }
-
+        // SIMPLE CHECK: If user has enough local credits, allow it
+        // This prevents paywall from showing when user clearly has credits
+        if userSession.fileCredits >= totalCount {
+            Logger.shared.info("Local credits sufficient: \(userSession.fileCredits) >= \(totalCount)")
             pricingInfo = PricingInfo(
                 totalFiles: totalCount,
                 creditsAvailable: userSession.fileCredits,
-                isFreeTrialEligible: !userSession.hasUsedFreeCleanup,
-                reason: localReason ?? ""
+                isFreeTrialEligible: false,
+                reason: "Will use \(totalCount) of \(userSession.fileCredits) credits"
             )
-
             currentStep = .awaitingConfirmation
             statusMessage = "Review organization plan"
             progress = 1.0
             showPreview = true
+            return
+        }
+
+        // Free trial check (if never used and within limit)
+        if !userSession.hasUsedFreeCleanup && totalCount <= UserSession.freeCleanupFileLimit {
+            Logger.shared.info("Free trial eligible: \(totalCount) files")
+            pricingInfo = PricingInfo(
+                totalFiles: totalCount,
+                creditsAvailable: userSession.fileCredits,
+                isFreeTrialEligible: true,
+                reason: "Free trial: \(totalCount) of \(UserSession.freeCleanupFileLimit) files"
+            )
+            currentStep = .awaitingConfirmation
+            statusMessage = "Review organization plan"
+            progress = 1.0
+            showPreview = true
+            return
+        }
+
+        // If account is linked, try server check (but with fallback)
+        if userSession.isAccountLinked {
+            Task {
+                statusMessage = "Verifying credits..."
+
+                let (serverAllowed, serverReason) = await userSession.canPerformCleanupServerSide(fileCount: totalCount)
+
+                await MainActor.run {
+                    if serverAllowed {
+                        // Server approved
+                        self.pricingInfo = PricingInfo(
+                            totalFiles: totalCount,
+                            creditsAvailable: userSession.fileCredits,
+                            isFreeTrialEligible: false,
+                            reason: serverReason ?? "Credits verified"
+                        )
+                        self.currentStep = .awaitingConfirmation
+                        self.statusMessage = "Review organization plan"
+                        self.progress = 1.0
+                        self.showPreview = true
+                    } else {
+                        // Server denied - show paywall
+                        Logger.shared.info("Server denied: \(serverReason ?? "unknown")")
+                        self.showPaywall = true
+                        self.isOrganizing = false
+                        self.currentStep = .idle
+                    }
+                }
+            }
+        } else {
+            // No account linked and no credits - show paywall
+            Logger.shared.info("No account linked, no credits, trial used")
+            showPaywall = true
+            isOrganizing = false
+            currentStep = .idle
         }
     }
 

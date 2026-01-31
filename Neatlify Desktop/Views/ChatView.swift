@@ -53,6 +53,7 @@ struct ChatView: View {
                         TextField("Tell me how to organize your files...", text: $viewModel.inputText)
                             .textFieldStyle(.plain)
                             .font(.body)
+                            .foregroundColor(.neatlifyDark)
                             .onSubmit {
                                 sendMessage()
                             }
