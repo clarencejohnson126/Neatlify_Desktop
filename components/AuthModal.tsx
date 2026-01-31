@@ -23,13 +23,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
     setError('');
     setMessage('');
     setLoading(true);
+    console.log('Auth modal: handleSubmit called, mode:', mode);
 
     try {
       if (mode === 'login') {
+        console.log('Auth modal: calling signIn...');
         const { error } = await signIn(email, password);
+        console.log('Auth modal: signIn returned, error:', error);
         if (error) {
           setError(error.message);
         } else {
+          console.log('Auth modal: success, calling onClose');
           onClose();
           resetForm();
         }

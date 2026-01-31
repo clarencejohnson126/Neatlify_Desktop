@@ -82,32 +82,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Add timeout to prevent infinite loading
-      const timeoutPromise = new Promise<{ error: Error }>((_, reject) => {
-        setTimeout(() => reject(new Error('Connection timeout. Please check your internet connection or try again.')), 15000);
-      });
-
-      const signInPromise = supabase.auth.signInWithPassword({
+      console.log('Attempting sign in for:', email);
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
-      const result = await Promise.race([signInPromise, timeoutPromise]);
-      return { error: (result as any).error as Error | null };
+      console.log('Sign in result:', { hasData: !!data, hasError: !!error });
+      return { error: error as Error | null };
     } catch (err) {
-      console.error('Sign in error:', err);
+      console.error('Sign in exception:', err);
       return { error: err as Error };
     }
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
     try {
-      // Add timeout to prevent infinite loading
-      const timeoutPromise = new Promise<{ error: Error }>((_, reject) => {
-        setTimeout(() => reject(new Error('Connection timeout. Please check your internet connection or try again.')), 15000);
-      });
-
-      const signUpPromise = supabase.auth.signUp({
+      console.log('Attempting sign up for:', email);
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -116,11 +107,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           },
         },
       });
-
-      const result = await Promise.race([signUpPromise, timeoutPromise]);
-      return { error: (result as any).error as Error | null };
+      console.log('Sign up result:', { hasData: !!data, hasError: !!error });
+      return { error: error as Error | null };
     } catch (err) {
-      console.error('Sign up error:', err);
+      console.error('Sign up exception:', err);
       return { error: err as Error };
     }
   };
