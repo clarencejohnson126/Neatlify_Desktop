@@ -2,7 +2,7 @@
 //  SettingsView.swift
 //  Neatlify
 //
-//  App settings and preferences
+//  App settings and preferences - Matching landing page design
 //
 
 import SwiftUI
@@ -11,24 +11,28 @@ struct SettingsView: View {
     @EnvironmentObject var userSession: UserSession
 
     var body: some View {
-        TabView {
-            GeneralSettingsView()
-                .tabItem {
-                    Label("General", systemImage: "gear")
-                }
+        ZStack {
+            Color.neatlifyBg.ignoresSafeArea()
 
-            SubscriptionSettingsView()
-                .environmentObject(userSession)
-                .tabItem {
-                    Label("Subscription", systemImage: "creditcard")
-                }
+            TabView {
+                GeneralSettingsView()
+                    .tabItem {
+                        Label("General", systemImage: "gear")
+                    }
 
-            AboutSettingsView()
-                .tabItem {
-                    Label("About", systemImage: "info.circle")
-                }
+                SubscriptionSettingsView()
+                    .environmentObject(userSession)
+                    .tabItem {
+                        Label("Credits", systemImage: "sparkles")
+                    }
+
+                AboutSettingsView()
+                    .tabItem {
+                        Label("About", systemImage: "info.circle")
+                    }
+            }
         }
-        .frame(width: 500, height: 400)
+        .frame(width: 520, height: 480)
     }
 }
 
@@ -37,23 +41,113 @@ struct GeneralSettingsView: View {
     @AppStorage("includeSubfolders") private var includeSubfolders = false
 
     var body: some View {
-        Form {
-            Section {
-                Toggle("Confirm before moving files", isOn: $confirmBeforeMoving)
-                Toggle("Include subfolders when scanning", isOn: $includeSubfolders)
-            } header: {
-                Text("Organization")
-            }
+        ZStack {
+            Color.neatlifyBg.ignoresSafeArea()
 
-            Section {
-                Button("Clear Operation History") {
-                    FileService.shared.clearOldHistory(olderThan: 0)
+            VStack(alignment: .leading, spacing: 20) {
+                // Organization section
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Image(systemName: "folder.badge.gearshape")
+                            .foregroundColor(.neatlifyGreen)
+                        Text("Organization")
+                            .font(.headline)
+                            .fontWeight(.black)
+                            .foregroundColor(.neatlifyDark)
+                    }
+
+                    VStack(spacing: 12) {
+                        SettingsToggleRow(
+                            title: "Confirm before moving files",
+                            subtitle: "Show preview before organizing",
+                            isOn: $confirmBeforeMoving
+                        )
+
+                        SettingsToggleRow(
+                            title: "Include subfolders",
+                            subtitle: "Scan nested folders when organizing",
+                            isOn: $includeSubfolders
+                        )
+                    }
                 }
-            } header: {
-                Text("Maintenance")
+                .padding(20)
+                .background(Color.white)
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.neatlifyDark, lineWidth: 2)
+                )
+
+                // Maintenance section
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Image(systemName: "wrench.and.screwdriver")
+                            .foregroundColor(.neatlifyYellow)
+                        Text("Maintenance")
+                            .font(.headline)
+                            .fontWeight(.black)
+                            .foregroundColor(.neatlifyDark)
+                    }
+
+                    Button(action: {
+                        FileService.shared.clearOldHistory(olderThan: 0)
+                    }) {
+                        HStack {
+                            Image(systemName: "trash")
+                            Text("Clear Operation History")
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundColor(.neatlifyRed)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color.neatlifyRed.opacity(0.1))
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.neatlifyDark, lineWidth: 2)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(20)
+                .background(Color.white)
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.neatlifyDark, lineWidth: 2)
+                )
+
+                Spacer()
             }
+            .padding(24)
         }
-        .padding()
+    }
+}
+
+struct SettingsToggleRow: View {
+    let title: String
+    let subtitle: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.neatlifyDark)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(.neatlifyDark.opacity(0.6))
+            }
+            Spacer()
+            Toggle("", isOn: $isOn)
+                .toggleStyle(.switch)
+                .tint(.neatlifyGreen)
+        }
+        .padding(12)
+        .background(Color.neatlifyBg)
+        .cornerRadius(8)
     }
 }
 
@@ -64,153 +158,266 @@ struct SubscriptionSettingsView: View {
     @State private var isSyncing = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            // Account section
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Account")
-                    .font(.headline)
+        ZStack {
+            Color.neatlifyBg.ignoresSafeArea()
 
-                if userSession.isAccountLinked {
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text(userSession.userEmail ?? "Linked")
-                            .font(.subheadline)
-                        Spacer()
-                        Button("Unlink") {
-                            userSession.unlinkAccount()
-                        }
-                        .font(.caption)
-                        .foregroundColor(.red)
-                    }
-                    .padding(8)
-                    .background(Color.green.opacity(0.1))
-                    .cornerRadius(8)
-                } else {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                        Text("Link your account to sync credits")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-
-                    Button("Link Account") {
-                        showLinkSheet = true
-                    }
-                    .buttonStyle(.bordered)
-                }
-            }
-
-            Divider()
-
-            // Credits section
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Credits")
-                        .font(.headline)
-                    Spacer()
-                    if userSession.isAccountLinked {
-                        Button(action: {
-                            isSyncing = true
-                            Task {
-                                await userSession.syncCreditsFromServer()
-                                await MainActor.run {
-                                    isSyncing = false
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Credits display card
+                    VStack(spacing: 16) {
+                        HStack {
+                            Image(systemName: "sparkles")
+                                .font(.title2)
+                                .foregroundColor(.neatlifyYellow)
+                            Text("Your Credits")
+                                .font(.headline)
+                                .fontWeight(.black)
+                                .foregroundColor(.neatlifyDark)
+                            Spacer()
+                            if userSession.isAccountLinked {
+                                Button(action: {
+                                    isSyncing = true
+                                    Task {
+                                        await userSession.syncCreditsFromServer()
+                                        await MainActor.run {
+                                            isSyncing = false
+                                        }
+                                    }
+                                }) {
+                                    if isSyncing {
+                                        ProgressView()
+                                            .scaleEffect(0.7)
+                                    } else {
+                                        Image(systemName: "arrow.clockwise")
+                                            .foregroundColor(.neatlifyGreen)
+                                    }
                                 }
-                            }
-                        }) {
-                            if isSyncing {
-                                ProgressView()
-                                    .scaleEffect(0.7)
-                            } else {
-                                Image(systemName: "arrow.clockwise")
+                                .buttonStyle(.plain)
+                                .disabled(isSyncing)
                             }
                         }
-                        .buttonStyle(.borderless)
-                        .disabled(isSyncing)
+
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text("\(userSession.fileCredits)")
+                                .font(.system(size: 56, weight: .black))
+                                .foregroundColor(.neatlifyGreen)
+
+                            Text("files")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.neatlifyDark.opacity(0.6))
+                        }
+
+                        if !userSession.hasUsedFreeCleanup && !userSession.isAccountLinked {
+                            HStack(spacing: 8) {
+                                Image(systemName: "gift.fill")
+                                    .foregroundColor(.neatlifyGreen)
+                                Text("Free trial available!")
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.neatlifyGreen)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Color.neatlifyGreen.opacity(0.15))
+                            .cornerRadius(8)
+                        }
+                    }
+                    .padding(20)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.neatlifyYellow.opacity(0.2))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.neatlifyDark, lineWidth: 2)
+                    )
+
+                    // Account section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "person.circle")
+                                .foregroundColor(.neatlifyGreen)
+                            Text("Account")
+                                .font(.headline)
+                                .fontWeight(.black)
+                                .foregroundColor(.neatlifyDark)
+                        }
+
+                        if userSession.isAccountLinked {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.neatlifyGreen)
+                                Text(userSession.userEmail ?? "Linked")
+                                    .font(.subheadline)
+                                    .foregroundColor(.neatlifyDark)
+                                Spacer()
+                                Button(action: {
+                                    userSession.unlinkAccount()
+                                }) {
+                                    Text("Unlink")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.neatlifyRed)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(12)
+                            .background(Color.neatlifyGreen.opacity(0.1))
+                            .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.neatlifyDark, lineWidth: 2)
+                            )
+                        } else {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(.neatlifyYellow)
+                                    Text("Link to sync purchased credits")
+                                        .font(.subheadline)
+                                        .foregroundColor(.neatlifyDark.opacity(0.7))
+                                }
+
+                                Button(action: {
+                                    showLinkSheet = true
+                                }) {
+                                    HStack {
+                                        Image(systemName: "link")
+                                        Text("Link Account")
+                                            .fontWeight(.bold)
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 10)
+                                    .background(Color.neatlifyGreen)
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.neatlifyDark, lineWidth: 2)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    .padding(20)
+                    .background(Color.white)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.neatlifyDark, lineWidth: 2)
+                    )
+
+                    // Usage stats
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "chart.bar")
+                                .foregroundColor(.neatlifyYellow)
+                            Text("Statistics")
+                                .font(.headline)
+                                .fontWeight(.black)
+                                .foregroundColor(.neatlifyDark)
+                        }
+
+                        HStack {
+                            StatsCard(
+                                icon: "checkmark.circle",
+                                value: "\(userSession.totalCleanupsPerformed)",
+                                label: "Cleanups"
+                            )
+                            StatsCard(
+                                icon: "doc.on.doc",
+                                value: "\(userSession.totalFilesProcessed)",
+                                label: "Files"
+                            )
+                        }
+                    }
+                    .padding(20)
+                    .background(Color.white)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.neatlifyDark, lineWidth: 2)
+                    )
+
+                    // Action buttons
+                    HStack(spacing: 12) {
+                        Button(action: {
+                            NotificationCenter.default.post(name: .showPaywall, object: nil)
+                        }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                Text("Buy Credits")
+                                    .fontWeight(.bold)
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.neatlifyGreen)
+                            .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.neatlifyDark, lineWidth: 2)
+                            )
+                            .shadow(color: Color.neatlifyDark.opacity(0.2), radius: 0, x: 3, y: 3)
+                        }
+                        .buttonStyle(.plain)
+
+                        Button(action: {
+                            showVerifySheet = true
+                        }) {
+                            HStack {
+                                Image(systemName: "checkmark.shield")
+                                Text("Verify")
+                                    .fontWeight(.bold)
+                            }
+                            .foregroundColor(.neatlifyDark)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.white)
+                            .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.neatlifyDark, lineWidth: 2)
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-
-                HStack(alignment: .firstTextBaseline) {
-                    Text("\(userSession.fileCredits)")
-                        .font(.system(size: 48, weight: .bold))
-                        .foregroundColor(.blue)
-
-                    Text("files remaining")
-                        .font(.title3)
-                        .foregroundColor(.secondary)
-                }
-
-                if !userSession.hasUsedFreeCleanup && !userSession.isAccountLinked {
-                    HStack {
-                        Image(systemName: "gift.fill")
-                            .foregroundColor(.green)
-                        Text("Free trial available (100 files)")
-                            .foregroundColor(.green)
-                    }
-                    .font(.subheadline)
-                }
+                .padding(24)
             }
-
-            Divider()
-
-            // Usage stats
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Usage Statistics")
-                    .font(.headline)
-
-                HStack {
-                    Text("Total cleanups:")
-                    Spacer()
-                    Text("\(userSession.totalCleanupsPerformed)")
-                        .fontWeight(.semibold)
-                }
-
-                HStack {
-                    Text("Files organized:")
-                    Spacer()
-                    Text("\(userSession.totalFilesProcessed)")
-                        .fontWeight(.semibold)
-                }
-
-                if let lastDate = userSession.lastCleanupDate {
-                    HStack {
-                        Text("Last cleanup:")
-                        Spacer()
-                        Text(lastDate, style: .date)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            .font(.body)
-
-            Divider()
-
-            // Purchase buttons
-            VStack(alignment: .leading, spacing: 12) {
-                Button("Buy More Credits") {
-                    NotificationCenter.default.post(name: .showPaywall, object: nil)
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button("Already Paid? Verify Payment") {
-                    showVerifySheet = true
-                }
-                .buttonStyle(.bordered)
-                .font(.caption)
-            }
-
-            Spacer()
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $showVerifySheet) {
             VerifyPaymentView(userSession: userSession, isPresented: $showVerifySheet)
         }
         .sheet(isPresented: $showLinkSheet) {
             LinkAccountView(userSession: userSession, isPresented: $showLinkSheet)
         }
+    }
+}
+
+struct StatsCard: View {
+    let icon: String
+    let value: String
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .foregroundColor(.neatlifyGreen)
+                Text(value)
+                    .font(.title2)
+                    .fontWeight(.black)
+                    .foregroundColor(.neatlifyDark)
+            }
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.neatlifyDark.opacity(0.6))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(12)
+        .background(Color.neatlifyBg)
+        .cornerRadius(8)
     }
 }
 
@@ -225,54 +432,121 @@ struct LinkAccountView: View {
     @State private var creditsFound = 0
 
     var body: some View {
-        VStack(spacing: 20) {
-            // Header
-            VStack(spacing: 8) {
-                Image(systemName: "person.badge.key.fill")
-                    .font(.system(size: 40))
-                    .foregroundColor(.blue)
+        ZStack {
+            Color.neatlifyBg.ignoresSafeArea()
 
-                Text("Link Your Account")
-                    .font(.title2)
-                    .fontWeight(.bold)
+            VStack(spacing: 24) {
+                // Header
+                VStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.neatlifyGreen)
+                            .frame(width: 70, height: 70)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color.neatlifyDark, lineWidth: 3)
+                            )
+                            .shadow(color: Color.neatlifyDark.opacity(0.2), radius: 0, x: 4, y: 4)
+                        Image(systemName: "link")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(.white)
+                    }
 
-                Text("Enter the email you used on neatlify.com")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
+                    Text("Link Your Account")
+                        .font(.system(size: 24, weight: .black))
+                        .foregroundColor(.neatlifyDark)
 
-            // Instructions
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Your credits are stored on our server.")
-                Text("Link your account to sync them here.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+                    Text("Enter the email you used on neatlify.com")
+                        .font(.subheadline)
+                        .foregroundColor(.neatlifyDark.opacity(0.6))
+                }
 
-            // Email input
-            TextField("Email address", text: $emailInput)
-                .textFieldStyle(.roundedBorder)
-                .textContentType(.emailAddress)
+                // Info card
+                HStack(spacing: 12) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.neatlifyYellow)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Credits are synced from our server")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.neatlifyDark)
+                        Text("Link to access your purchased credits")
+                            .font(.caption)
+                            .foregroundColor(.neatlifyDark.opacity(0.6))
+                    }
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.neatlifyYellow.opacity(0.15))
+                .cornerRadius(10)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.neatlifyDark, lineWidth: 2)
+                )
 
-            // Link button
-            Button(action: linkAccount) {
-                if isLinking {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                } else {
-                    Text("Link & Sync Credits")
+                // Email input
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Email Address")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.neatlifyDark.opacity(0.6))
+
+                    HStack {
+                        Image(systemName: "envelope")
+                            .foregroundColor(.neatlifyDark.opacity(0.4))
+                        TextField("you@example.com", text: $emailInput)
+                            .textFieldStyle(.plain)
+                            .textContentType(.emailAddress)
+                    }
+                    .padding(14)
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.neatlifyDark, lineWidth: 2)
+                    )
+                }
+
+                // Buttons
+                VStack(spacing: 12) {
+                    Button(action: linkAccount) {
+                        HStack {
+                            if isLinking {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            } else {
+                                Image(systemName: "link.badge.plus")
+                                Text("Link & Sync Credits")
+                                    .fontWeight(.bold)
+                            }
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(isValidEmail(emailInput) && !isLinking ? Color.neatlifyGreen : Color.neatlifyDark.opacity(0.3))
+                        .cornerRadius(10)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.neatlifyDark, lineWidth: 2)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(emailInput.isEmpty || isLinking || !isValidEmail(emailInput))
+
+                    Button(action: {
+                        isPresented = false
+                    }) {
+                        Text("Cancel")
+                            .fontWeight(.semibold)
+                            .foregroundColor(.neatlifyDark.opacity(0.5))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(emailInput.isEmpty || isLinking || !isValidEmail(emailInput))
-
-            Button("Cancel") {
-                isPresented = false
-            }
-            .foregroundColor(.secondary)
+            .padding(32)
         }
-        .padding(32)
-        .frame(width: 400)
+        .frame(width: 420, height: 480)
         .alert("Linking Failed", isPresented: $showError) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -300,16 +574,12 @@ struct LinkAccountView: View {
 
         Task {
             do {
-                // Try to get credits from server to verify account exists
                 let credits = try await SupabaseService.shared.getCredits(userEmail: email)
 
                 await MainActor.run {
                     isLinking = false
-
-                    // Link the account
                     userSession.linkAccount(email: email)
                     userSession.fileCredits = credits
-
                     creditsFound = credits
                     showSuccess = true
                 }
@@ -317,7 +587,6 @@ struct LinkAccountView: View {
                 await MainActor.run {
                     isLinking = false
 
-                    // Check if it's a "user not found" error
                     if error.localizedDescription.contains("not found") {
                         errorMessage = "No account found with this email. Please sign up at neatlify.com first."
                     } else {
@@ -341,54 +610,121 @@ struct VerifyPaymentView: View {
     @State private var creditsAdded = 0
 
     var body: some View {
-        VStack(spacing: 20) {
-            // Header
-            VStack(spacing: 8) {
-                Image(systemName: "checkmark.shield.fill")
-                    .font(.system(size: 40))
-                    .foregroundColor(.blue)
+        ZStack {
+            Color.neatlifyBg.ignoresSafeArea()
 
-                Text("Verify Payment")
-                    .font(.title2)
-                    .fontWeight(.bold)
+            VStack(spacing: 24) {
+                // Header
+                VStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.neatlifyYellow)
+                            .frame(width: 70, height: 70)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color.neatlifyDark, lineWidth: 3)
+                            )
+                            .shadow(color: Color.neatlifyDark.opacity(0.2), radius: 0, x: 4, y: 4)
+                        Image(systemName: "checkmark.shield")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(.neatlifyDark)
+                    }
 
-                Text("Paste your Stripe checkout session ID")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
+                    Text("Verify Payment")
+                        .font(.system(size: 24, weight: .black))
+                        .foregroundColor(.neatlifyDark)
 
-            // Instructions
-            VStack(alignment: .leading, spacing: 8) {
-                Text("After payment, you received a confirmation.")
-                Text("The session ID looks like: cs_test_xxx...")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+                    Text("Paste your Stripe checkout session ID")
+                        .font(.subheadline)
+                        .foregroundColor(.neatlifyDark.opacity(0.6))
+                }
 
-            // Input field
-            TextField("Session ID (cs_test_...)", text: $sessionIdInput)
-                .textFieldStyle(.roundedBorder)
-                .font(.system(.body, design: .monospaced))
+                // Info card
+                HStack(spacing: 12) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.neatlifyGreen)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Where to find your session ID")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.neatlifyDark)
+                        Text("Check your email confirmation or paste the success URL")
+                            .font(.caption)
+                            .foregroundColor(.neatlifyDark.opacity(0.6))
+                    }
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.neatlifyGreen.opacity(0.1))
+                .cornerRadius(10)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.neatlifyDark, lineWidth: 2)
+                )
 
-            // Verify button
-            Button(action: verifyPayment) {
-                if isVerifying {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                } else {
-                    Text("Verify & Add Credits")
+                // Session ID input
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Session ID")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.neatlifyDark.opacity(0.6))
+
+                    HStack {
+                        Image(systemName: "key")
+                            .foregroundColor(.neatlifyDark.opacity(0.4))
+                        TextField("cs_test_...", text: $sessionIdInput)
+                            .textFieldStyle(.plain)
+                            .font(.system(.body, design: .monospaced))
+                    }
+                    .padding(14)
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.neatlifyDark, lineWidth: 2)
+                    )
+                }
+
+                // Buttons
+                VStack(spacing: 12) {
+                    Button(action: verifyPayment) {
+                        HStack {
+                            if isVerifying {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            } else {
+                                Image(systemName: "checkmark.circle")
+                                Text("Verify & Add Credits")
+                                    .fontWeight(.bold)
+                            }
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(!sessionIdInput.isEmpty && !isVerifying ? Color.neatlifyGreen : Color.neatlifyDark.opacity(0.3))
+                        .cornerRadius(10)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.neatlifyDark, lineWidth: 2)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(sessionIdInput.isEmpty || isVerifying)
+
+                    Button(action: {
+                        isPresented = false
+                    }) {
+                        Text("Cancel")
+                            .fontWeight(.semibold)
+                            .foregroundColor(.neatlifyDark.opacity(0.5))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(sessionIdInput.isEmpty || isVerifying)
-
-            Button("Cancel") {
-                isPresented = false
-            }
-            .foregroundColor(.secondary)
+            .padding(32)
         }
-        .padding(32)
-        .frame(width: 400)
+        .frame(width: 420, height: 480)
         .alert("Verification Failed", isPresented: $showError) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -404,10 +740,8 @@ struct VerifyPaymentView: View {
     }
 
     private func verifyPayment() {
-        // Clean up input - extract session ID if full URL pasted
         var sessionId = sessionIdInput.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // If user pasted a URL, extract the session_id parameter
         if sessionId.contains("session_id=") {
             if let range = sessionId.range(of: "session_id=") {
                 sessionId = String(sessionId[range.upperBound...])
@@ -417,7 +751,6 @@ struct VerifyPaymentView: View {
             }
         }
 
-        // Validate format
         guard sessionId.hasPrefix("cs_") else {
             errorMessage = "Invalid session ID. It should start with 'cs_'"
             showError = true
@@ -466,34 +799,109 @@ struct VerifyPaymentView: View {
 
 struct AboutSettingsView: View {
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 60))
-                .foregroundColor(.blue)
+        ZStack {
+            Color.neatlifyBg.ignoresSafeArea()
 
-            Text("Neatlify")
-                .font(.title)
-                .fontWeight(.bold)
+            VStack(spacing: 24) {
+                // Logo
+                ZStack {
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.neatlifyGreen)
+                        .frame(width: 100, height: 100)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.neatlifyDark, lineWidth: 3)
+                        )
+                        .shadow(color: Color.neatlifyDark.opacity(0.2), radius: 0, x: 5, y: 5)
+                    Text("N")
+                        .font(.system(size: 54, weight: .black))
+                        .foregroundColor(.white)
+                }
 
-            Text("Version 1.0.0")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                VStack(spacing: 8) {
+                    Text("Neatlify")
+                        .font(.system(size: 32, weight: .black))
+                        .foregroundColor(.neatlifyDark)
 
-            Text("Organize your files with AI")
-                .font(.body)
+                    Text("Version 1.0.0")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.neatlifyDark.opacity(0.5))
 
-            Divider()
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .foregroundColor(.neatlifyYellow)
+                        Text("Organize your files with AI")
+                            .font(.subheadline)
+                            .foregroundColor(.neatlifyDark.opacity(0.7))
+                    }
+                    .padding(.top, 4)
+                }
 
-            VStack(spacing: 8) {
-                Link("Privacy Policy", destination: URL(string: "https://neatlify.com/privacy")!)
-                Link("Terms of Service", destination: URL(string: "https://neatlify.com/terms")!)
-                Link("Support", destination: URL(string: "https://neatlify.com/support")!)
+                // Links card
+                VStack(spacing: 0) {
+                    AboutLinkRow(icon: "lock.shield", title: "Privacy Policy", url: "https://neatlify.com/privacy")
+                    Divider()
+                        .background(Color.neatlifyDark.opacity(0.2))
+                    AboutLinkRow(icon: "doc.text", title: "Terms of Service", url: "https://neatlify.com/terms")
+                    Divider()
+                        .background(Color.neatlifyDark.opacity(0.2))
+                    AboutLinkRow(icon: "questionmark.circle", title: "Support", url: "https://neatlify.com/support")
+                    Divider()
+                        .background(Color.neatlifyDark.opacity(0.2))
+                    AboutLinkRow(icon: "globe", title: "Visit Website", url: "https://clarencejohnson126.github.io/Neatlify_Desktop/")
+                }
+                .background(Color.white)
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.neatlifyDark, lineWidth: 2)
+                )
+
+                // Tech badge
+                HStack(spacing: 8) {
+                    Text("Powered by")
+                        .font(.caption)
+                        .foregroundColor(.neatlifyDark.opacity(0.5))
+                    Text("Claude AI")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.neatlifyDark)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.neatlifyYellow.opacity(0.3))
+                        .cornerRadius(6)
+                }
+
+                Spacer()
             }
-            .font(.caption)
-
-            Spacer()
+            .padding(24)
         }
-        .padding()
+    }
+}
+
+struct AboutLinkRow: View {
+    let icon: String
+    let title: String
+    let url: String
+
+    var body: some View {
+        Link(destination: URL(string: url)!) {
+            HStack {
+                Image(systemName: icon)
+                    .foregroundColor(.neatlifyGreen)
+                    .frame(width: 24)
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundColor(.neatlifyDark)
+                Spacer()
+                Image(systemName: "arrow.up.right")
+                    .font(.caption)
+                    .foregroundColor(.neatlifyDark.opacity(0.4))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+        }
     }
 }
 

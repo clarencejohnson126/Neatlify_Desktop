@@ -84,13 +84,59 @@ class PaymentService {
 
     @MainActor
     func purchasePack(_ pack: CreditPack) {
-        let url: String
-        switch pack {
-        case .starter: url = starterPackURL
-        case .pro: url = proPackURL
-        case .business: url = businessPackURL
+        // Use Supabase Edge Function to create dynamic checkout session
+        Task {
+            await createCheckoutSession(pack: pack)
         }
-        openCheckout(url: url)
+    }
+
+    private func createCheckoutSession(pack: CreditPack) async {
+        let productType: String
+        switch pack {
+        case .starter: productType = "starter"
+        case .pro: productType = "pro"
+        case .business: productType = "business"
+        }
+
+        // Get user email if linked
+        let userEmail = UserSession.load().userEmail ?? ""
+
+        guard let url = URL(string: "https://nlvlwrhayrvberdyjgjx.supabase.co/functions/v1/create-checkout") else {
+            Logger.shared.error("Invalid checkout URL")
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any] = [
+            "productType": productType,
+            "userEmail": userEmail,
+            "successUrl": "https://clarencejohnson126.github.io/Neatlify_Desktop/#/success?session_id={CHECKOUT_SESSION_ID}",
+            "cancelUrl": "https://clarencejohnson126.github.io/Neatlify_Desktop/#pricing"
+        ]
+
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            let (data, _) = try await URLSession.shared.data(for: request)
+
+            if let response = try? JSONDecoder().decode(CheckoutResponse.self, from: data),
+               let checkoutURL = URL(string: response.url) {
+                await MainActor.run {
+                    NSWorkspace.shared.open(checkoutURL)
+                }
+                Logger.shared.info("Opened Stripe checkout for \(productType)")
+            } else {
+                Logger.shared.error("Failed to parse checkout response")
+            }
+        } catch {
+            Logger.shared.error("Checkout error: \(error)")
+        }
+    }
+
+    private struct CheckoutResponse: Codable {
+        let url: String
     }
 
     @MainActor
