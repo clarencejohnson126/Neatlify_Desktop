@@ -1,0 +1,696 @@
+
+import React, { useState, useEffect, useRef } from 'react';
+import { translations, Language } from './translations';
+import {
+  FolderIcon,
+  AiScanIcon,
+  ChecklistIcon,
+  MessyDeskIllustration,
+  CleanDeskIllustration,
+  PencilIcon,
+  PrivacyIcon,
+  HistoryIcon,
+  CloudOffIcon,
+  BicycleIllustration,
+  PlantIllustration,
+  StickyNoteIllustration,
+  HardHatIcon,
+  BlueprintIcon,
+  BuildingIcon,
+  CameraIcon,
+  TagIcon,
+  ConstructionSiteIllustration,
+  OrganizedFilesIllustration,
+  RealEstateIllustration,
+  DocumentStackIcon,
+  LaptopIllustration,
+  ExcavatorIllustration,
+  ConstructionWorkerIllustration,
+  WomanWithLaptopIllustration,
+  DocumentsIllustration,
+  FilesImageIllustration,
+  BookIcon,
+  TradesIcon,
+  QuoteIcon
+} from './components/Illustrations';
+
+// Scroll animation hook
+const useScrollAnimation = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return { ref, isVisible };
+};
+
+// Flip Card Component
+const FlipCard = ({ front, back, className = '' }: { front: React.ReactNode; back: React.ReactNode; className?: string }) => {
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  return (
+    <div
+      className={`flip-card cursor-pointer ${isFlipped ? 'flipped' : ''} ${className}`}
+      onClick={() => setIsFlipped(!isFlipped)}
+      style={{ height: '280px' }}
+    >
+      <div className="flip-card-inner" style={{ height: '100%' }}>
+        <div className="flip-card-front bg-white sketch-border p-6 cartoon-shadow hover:bg-[#FAFAF8] transition-all overflow-hidden" style={{ height: '100%' }}>
+          {front}
+          <div className="absolute bottom-2 right-2 text-[10px] opacity-40 font-bold">Click to flip →</div>
+        </div>
+        <div className="flip-card-back bg-[#2D3436] text-white sketch-border p-6 overflow-hidden" style={{ height: '100%' }}>
+          {back}
+          <div className="absolute bottom-2 right-2 text-[10px] opacity-40">← Click to flip back</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Animated Section Wrapper
+const AnimatedSection = ({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) => {
+  const { ref, isVisible } = useScrollAnimation();
+  return (
+    <div
+      ref={ref}
+      className={`fade-in-up ${isVisible ? 'visible' : ''} ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+};
+
+const LandingPage: React.FC = () => {
+  const [lang, setLang] = useState<Language>(() => {
+    const saved = localStorage.getItem('neatlify_lang');
+    return (saved as Language) || 'EN';
+  });
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const t = translations[lang];
+
+  useEffect(() => {
+    localStorage.setItem('neatlify_lang', lang);
+  }, [lang]);
+
+  const toggleLang = () => setLang(prev => prev === 'EN' ? 'DE' : 'EN');
+
+  const featureIcons = [
+    { icon: <PencilIcon />, color: '#FFD93D' },
+    { icon: <ChecklistIcon />, color: '#FF6B6B' },
+    { icon: <FolderIcon />, color: '#29AB87' },
+    { icon: <PrivacyIcon />, color: '#2D3436' },
+    { icon: <HistoryIcon />, color: '#FF6B6B' },
+    { icon: <CloudOffIcon />, color: '#29AB87' },
+  ];
+
+  const featureKeys = ['images', 'docs', 'categories', 'privacy', 'undo', 'offline'] as const;
+
+  return (
+    <div className="min-h-screen relative overflow-x-hidden selection:bg-[#FFD93D] selection:text-[#2D3436]">
+      {/* Background Decorations */}
+      <div className="absolute top-40 -left-10 opacity-15 pointer-events-none float">
+        <BicycleIllustration className="w-48 h-auto" />
+      </div>
+      <div className="absolute top-[800px] -right-10 opacity-10 pointer-events-none wiggle">
+        <LaptopIllustration className="w-40 h-auto" />
+      </div>
+      <div className="absolute top-[1400px] left-5 opacity-10 pointer-events-none float" style={{animationDelay: '2s'}}>
+        <DocumentsIllustration className="w-32 h-auto" />
+      </div>
+      <div className="absolute top-[2200px] -right-20 opacity-10 pointer-events-none">
+        <ExcavatorIllustration className="w-56 h-auto" />
+      </div>
+      <div className="absolute top-[3000px] left-10 opacity-10 pointer-events-none wiggle">
+        <FilesImageIllustration className="w-28 h-auto" />
+      </div>
+      <div className="absolute top-[3800px] right-20 opacity-10 pointer-events-none float">
+        <PlantIllustration className="w-32 h-auto" />
+      </div>
+
+      {/* Navbar */}
+      <nav className="fixed top-0 left-0 right-0 bg-[#FAFAF8] bg-opacity-95 backdrop-blur-md z-50 border-b-4 border-[#2D3436] py-4">
+        <div className="max-w-6xl mx-auto px-6 flex justify-between items-center">
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
+            <div className="w-12 h-12 bg-[#29AB87] sketch-border flex items-center justify-center cartoon-shadow group-hover:scale-110 transition-all">
+              <span className="text-white font-bold text-2xl">N</span>
+            </div>
+            <span className="text-3xl font-bold text-[#2D3436] tracking-tight">Neatlify</span>
+          </div>
+
+          <div className="hidden md:flex items-center gap-6 font-bold text-sm">
+            <a href="#features" className="hover:text-[#29AB87] transition-all">{t.nav.features}</a>
+            <a href="#how" className="hover:text-[#29AB87] transition-all">{t.nav.howItWorks}</a>
+            <a href="#professionals" className="hover:text-[#29AB87] transition-all">{t.nav.professionals}</a>
+            <a href="#pricing" className="hover:text-[#29AB87] transition-all">{t.nav.pricing}</a>
+            <a href="/downloads/Neatlify.dmg" className="bg-[#29AB87] text-white px-6 py-2 rounded-full sketch-border cartoon-shadow-hover transition-all">
+              {t.nav.download}
+            </a>
+          </div>
+
+          <button
+            onClick={toggleLang}
+            className="sketch-border px-4 py-2 text-sm font-bold bg-[#FFD93D] cartoon-shadow-hover transition-all ml-4"
+          >
+            {lang === 'EN' ? 'EN | DE' : 'DE | EN'}
+          </button>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="pt-44 pb-20 px-6 relative">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+          <AnimatedSection className="space-y-6 relative z-10">
+            <div className="flex flex-wrap gap-3">
+              <div className="inline-block bg-[#29AB87] text-white px-4 py-1 rounded-full text-sm font-bold sketch-border cartoon-shadow">
+                {t.hero.badges.personal} ✨
+              </div>
+              <div className="inline-block bg-[#FF6B6B] text-white px-4 py-1 rounded-full text-sm font-bold sketch-border cartoon-shadow wiggle">
+                {t.hero.badges.business} 🏗️
+              </div>
+            </div>
+            <h1 className="text-5xl md:text-7xl font-bold leading-[0.95] text-[#2D3436]">
+              {t.hero.headline}
+            </h1>
+            <p className="text-xl text-[#2D3436] opacity-80 leading-relaxed max-w-lg font-medium">
+              {t.hero.subheadline}
+            </p>
+            <p className="text-base text-[#2D3436] opacity-60 font-medium border-l-4 border-[#FFD93D] pl-4">
+              {t.hero.useCases}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 pt-2">
+              <a href="/downloads/Neatlify.dmg" className="bg-[#29AB87] text-white px-8 py-4 rounded-full text-xl font-bold sketch-border cartoon-shadow-hover transition-all text-center pulse">
+                {t.hero.cta}
+              </a>
+              <a href="#how" className="px-8 py-4 rounded-full text-xl font-bold sketch-border bg-white text-[#2D3436] cartoon-shadow-hover transition-all text-center">
+                {t.hero.secondary}
+              </a>
+            </div>
+            <div className="text-sm text-[#2D3436] opacity-60 flex items-center gap-3 font-bold">
+              <span className="bg-[#FFD93D] p-2 rounded-lg sketch-border"></span>
+              {t.hero.requirements} • {t.hero.version}
+            </div>
+          </AnimatedSection>
+
+          <AnimatedSection delay={200} className="relative">
+            <div className="sketch-border bg-white p-6 cartoon-shadow relative transform -rotate-1 hover:rotate-0 transition-all duration-500">
+              <div className="grid grid-cols-2 gap-4 relative z-10">
+                <div className="space-y-3 text-center">
+                  <span className="font-black text-[#FF6B6B] block uppercase tracking-widest text-xs">Messy</span>
+                  <div className="bg-[#FAFAF8] p-3 sketch-border">
+                    <MessyDeskIllustration className="w-full h-auto" />
+                  </div>
+                </div>
+                <div className="space-y-3 text-center">
+                  <span className="font-black text-[#29AB87] block uppercase tracking-widest text-xs">Organized</span>
+                  <div className="bg-[#FAFAF8] p-3 sketch-border">
+                    <CleanDeskIllustration className="w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="absolute -top-8 -left-8 wiggle">
+                <StickyNoteIllustration text="TODO" color="#FFD93D" className="w-20 h-20" />
+              </div>
+              <div className="absolute -bottom-8 -right-4 transform rotate-12 float">
+                <div className="bg-[#FF6B6B] text-white sketch-border px-4 py-2 font-black cartoon-shadow text-sm">
+                  ✨ Smart Organization
+                </div>
+              </div>
+            </div>
+            {/* Decorative woman illustration */}
+            <div className="absolute -bottom-16 -left-16 opacity-20 pointer-events-none">
+              <WomanWithLaptopIllustration className="w-32 h-auto" />
+            </div>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section id="how" className="py-24 bg-white border-y-4 border-[#2D3436] relative overflow-hidden">
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
+          <AnimatedSection className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold">{t.how.title}</h2>
+          </AnimatedSection>
+          <div className="grid md:grid-cols-4 gap-8 relative">
+            {[
+              { icon: <FolderIcon />, ...t.how.step1, color: '#29AB87' },
+              { icon: <AiScanIcon />, ...t.how.step2, color: '#FF6B6B', hasExample: true },
+              { icon: <PencilIcon />, ...t.how.step3, color: '#FFD93D' },
+              { icon: <ChecklistIcon />, ...t.how.step4, color: '#29AB87' }
+            ].map((step, i) => (
+              <AnimatedSection key={i} delay={i * 150} className="flex flex-col items-center text-center group">
+                <div className="w-20 h-20 sketch-border mb-4 flex items-center justify-center cartoon-shadow transition-all group-hover:scale-110 group-hover:-rotate-3" style={{backgroundColor: step.color}}>
+                  <div className="text-white scale-110">{step.icon}</div>
+                </div>
+                <div className="text-xs font-black text-[#2D3436] opacity-40 mb-2">STEP {i + 1}</div>
+                <h3 className="text-xl font-bold mb-2">{step.title}</h3>
+                <p className="text-sm text-[#2D3436] opacity-70 leading-relaxed">{step.desc}</p>
+                {step.hasExample && step.example && (
+                  <div className="mt-3 bg-[#2D3436] text-white px-4 py-2 rounded-lg text-xs font-mono italic sketch-border">
+                    {step.example}
+                  </div>
+                )}
+              </AnimatedSection>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid with Flip Cards */}
+      <section id="features" className="py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <AnimatedSection className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold">{lang === 'EN' ? 'Features' : 'Funktionen'}</h2>
+          </AnimatedSection>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featureKeys.map((key, i) => {
+              const feat = t.features[key];
+              const { icon, color } = featureIcons[i];
+              return (
+                <AnimatedSection key={i} delay={i * 100}>
+                  <FlipCard
+                    front={
+                      <div className="h-full flex flex-col card-content">
+                        <div className="mb-4 w-12 h-12 sketch-border flex items-center justify-center flex-shrink-0" style={{backgroundColor: color, color: 'white'}}>
+                          {icon}
+                        </div>
+                        <h3 className="text-xl font-bold mb-2">{feat.title}</h3>
+                        <p className="text-[#2D3436] opacity-70 text-sm leading-relaxed">{feat.desc}</p>
+                      </div>
+                    }
+                    back={
+                      <div className="h-full flex flex-col card-content">
+                        <h3 className="text-lg font-bold mb-2 text-[#FFD93D]">{feat.backTitle}</h3>
+                        <p className="text-sm opacity-80 mb-3 leading-relaxed">{feat.backDesc}</p>
+                        <ul className="text-xs space-y-1 mt-auto">
+                          {feat.backList.map((item: string, j: number) => (
+                            <li key={j} className="flex items-center gap-2">
+                              <span className="text-[#29AB87]">✓</span> {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    }
+                  />
+                </AnimatedSection>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Use Cases Section */}
+      <section className="py-24 px-6 bg-[#FAFAF8] border-y-4 border-[#2D3436]">
+        <div className="max-w-6xl mx-auto">
+          <AnimatedSection className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">{t.useCasesSection.title}</h2>
+            <p className="text-xl opacity-70">{t.useCasesSection.subtitle}</p>
+          </AnimatedSection>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {t.useCasesSection.cases.map((useCase, i) => {
+              const icons: Record<string, React.ReactNode> = {
+                camera: <CameraIcon />,
+                building: <BuildingIcon />,
+                hardhat: <HardHatIcon />,
+                house: <RealEstateIllustration className="w-10 h-10" />,
+                book: <BookIcon />,
+                folder: <FolderIcon />
+              };
+              const colors = ['#FF6B6B', '#29AB87', '#FFD93D', '#FF6B6B', '#29AB87', '#FFD93D'];
+              return (
+                <AnimatedSection key={i} delay={i * 100}>
+                  <div className="bg-white sketch-border p-6 cartoon-shadow hover:-translate-y-1 transition-all h-full">
+                    <div className="w-12 h-12 sketch-border flex items-center justify-center mb-4" style={{backgroundColor: colors[i], color: 'white'}}>
+                      {icons[useCase.icon]}
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">{useCase.title}</h3>
+                    <p className="text-sm opacity-70">{useCase.desc}</p>
+                  </div>
+                </AnimatedSection>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Professionals Section */}
+      <section id="professionals" className="py-24 px-6 bg-[#2D3436] text-white relative overflow-hidden">
+        <div className="absolute top-10 right-10 opacity-10">
+          <ConstructionWorkerIllustration className="w-40 h-auto" />
+        </div>
+        <div className="absolute bottom-20 left-10 opacity-10">
+          <ExcavatorIllustration className="w-48 h-auto" />
+        </div>
+
+        <div className="max-w-6xl mx-auto relative z-10">
+          <AnimatedSection className="text-center mb-16">
+            <div className="inline-flex items-center gap-3 bg-[#FF6B6B] text-white px-6 py-2 rounded-full text-sm font-black sketch-border cartoon-shadow mb-6">
+              <HardHatIcon className="w-5 h-5" />
+              <span>PRO FEATURES</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black mb-4">{t.professionals.title}</h2>
+            <p className="text-xl opacity-80 max-w-2xl mx-auto">{t.professionals.subtitle}</p>
+          </AnimatedSection>
+
+          {/* Before/After */}
+          <div className="grid md:grid-cols-2 gap-6 mb-16">
+            <AnimatedSection>
+              <div className="sketch-border bg-white bg-opacity-5 p-4 relative">
+                <div className="absolute -top-3 left-4 bg-[#FF6B6B] text-white px-3 py-1 rounded-full text-xs font-black sketch-border">BEFORE</div>
+                <ConstructionSiteIllustration className="w-full h-auto" />
+              </div>
+            </AnimatedSection>
+            <AnimatedSection delay={200}>
+              <div className="sketch-border bg-white bg-opacity-10 p-4 relative">
+                <div className="absolute -top-3 left-4 bg-[#29AB87] text-white px-3 py-1 rounded-full text-xs font-black sketch-border">AFTER</div>
+                <OrganizedFilesIllustration className="w-full h-auto" />
+              </div>
+            </AnimatedSection>
+          </div>
+
+          {/* Use Cases with Flip Cards */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-16">
+            {[
+              { icon: <CameraIcon />, ...t.professionals.useCases[0], color: '#29AB87' },
+              { icon: <TagIcon />, ...t.professionals.useCases[1], color: '#FFD93D' },
+              { icon: <BlueprintIcon />, ...t.professionals.useCases[2], color: '#FF6B6B' },
+              { icon: <BuildingIcon />, ...t.professionals.useCases[3], color: '#29AB87' },
+            ].map((useCase, i) => (
+              <AnimatedSection key={i} delay={i * 100}>
+                <FlipCard
+                  className="h-[260px]"
+                  front={
+                    <div className="h-full flex flex-col card-content text-[#2D3436]">
+                      <div className="w-10 h-10 sketch-border flex items-center justify-center mb-3 flex-shrink-0" style={{backgroundColor: useCase.color}}>
+                        <div className="text-white scale-75">{useCase.icon}</div>
+                      </div>
+                      <div className="text-[10px] font-black uppercase tracking-wider opacity-60 mb-1">{useCase.tag}</div>
+                      <h3 className="text-base font-bold mb-2">{useCase.title}</h3>
+                      <p className="text-xs opacity-70 leading-relaxed">{useCase.desc}</p>
+                    </div>
+                  }
+                  back={
+                    <div className="h-full flex flex-col card-content">
+                      <h3 className="text-sm font-bold mb-2 text-[#FFD93D]">{useCase.backTitle}</h3>
+                      <p className="text-[11px] opacity-80 mb-2 leading-relaxed">{useCase.backDesc}</p>
+                      <ul className="text-[10px] space-y-1 mt-auto">
+                        {useCase.backList.map((item: string, j: number) => (
+                          <li key={j} className="flex items-center gap-1">
+                            <span className="text-[#29AB87]">✓</span> {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  }
+                />
+              </AnimatedSection>
+            ))}
+          </div>
+
+          {/* Trades/Gewerke Section */}
+          <AnimatedSection>
+            <div className="bg-white bg-opacity-5 sketch-border p-6 mb-12">
+              <div className="flex items-center gap-3 mb-4">
+                <TradesIcon className="w-8 h-8 text-[#FFD93D]" />
+                <h3 className="text-2xl font-bold">{t.professionals.trades.title}</h3>
+              </div>
+              <p className="opacity-70 mb-6">{t.professionals.trades.subtitle}</p>
+              <div className="flex flex-wrap gap-3">
+                {t.professionals.trades.list.map((trade, i) => (
+                  <span key={i} className="bg-white bg-opacity-10 px-4 py-2 rounded-full text-sm font-bold sketch-border hover:bg-[#29AB87] transition-all cursor-default">
+                    {trade}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </AnimatedSection>
+
+          {/* Stats */}
+          <div className="flex flex-wrap justify-center gap-12 mb-10">
+            <AnimatedSection className="text-center">
+              <div className="text-4xl md:text-5xl font-black text-[#FFD93D]">{t.professionals.stats.time}</div>
+              <div className="text-sm opacity-60 uppercase tracking-wider font-bold">{t.professionals.stats.timeLabel}</div>
+            </AnimatedSection>
+            <AnimatedSection delay={200} className="text-center">
+              <div className="text-4xl md:text-5xl font-black text-[#29AB87]">{t.professionals.stats.files}</div>
+              <div className="text-sm opacity-60 uppercase tracking-wider font-bold">{t.professionals.stats.filesLabel}</div>
+            </AnimatedSection>
+          </div>
+
+          <AnimatedSection className="text-center">
+            <a href="#pricing" className="inline-block bg-[#FFD93D] text-[#2D3436] px-10 py-4 rounded-full text-xl font-black sketch-border cartoon-shadow-hover transition-all">
+              {t.professionals.cta}
+            </a>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* How AI Works Section */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <AnimatedSection className="text-center mb-16">
+            <div className="inline-block bg-[#2D3436] text-white px-4 py-1 rounded-full text-sm font-bold mb-4">
+              {t.howAiWorks.badge}
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">{t.howAiWorks.title}</h2>
+            <p className="text-xl opacity-70">{t.howAiWorks.subtitle}</p>
+          </AnimatedSection>
+
+          <div className="space-y-6 mb-12">
+            {t.howAiWorks.steps.map((step, i) => (
+              <AnimatedSection key={i} delay={i * 150}>
+                <div className="flex gap-6 items-start bg-[#FAFAF8] sketch-border p-6 cartoon-shadow hover:-translate-y-1 transition-all">
+                  <div className="w-12 h-12 rounded-full bg-[#29AB87] flex items-center justify-center text-white font-black text-xl flex-shrink-0 sketch-border">
+                    {i + 1}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-2">{step.title}</h3>
+                    <p className="opacity-70">{step.desc}</p>
+                  </div>
+                </div>
+              </AnimatedSection>
+            ))}
+          </div>
+
+          <AnimatedSection className="text-center">
+            <div className="inline-flex items-center gap-2 bg-[#29AB87] bg-opacity-10 text-[#29AB87] px-6 py-3 rounded-full font-bold">
+              <PrivacyIcon className="w-5 h-5" />
+              {t.howAiWorks.privacy}
+            </div>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-24 px-6 bg-[#FFD93D] border-y-4 border-[#2D3436]">
+        <div className="max-w-6xl mx-auto">
+          <AnimatedSection className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">{t.testimonials.title}</h2>
+            <p className="text-xl opacity-70">{t.testimonials.subtitle}</p>
+          </AnimatedSection>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {t.testimonials.items.map((item, i) => (
+              <AnimatedSection key={i} delay={i * 150}>
+                <div className="bg-white sketch-border p-6 cartoon-shadow h-full flex flex-col">
+                  <QuoteIcon className="w-8 h-8 text-[#29AB87] mb-4 opacity-50" />
+                  <p className="text-lg mb-6 flex-grow italic">"{item.quote}"</p>
+                  <div className="border-t-2 border-[#2D3436] border-opacity-10 pt-4">
+                    <div className="font-bold">{item.author}</div>
+                    <div className="text-sm opacity-60">{item.role}</div>
+                    <div className="text-sm opacity-40">{item.company}</div>
+                  </div>
+                </div>
+              </AnimatedSection>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-24 px-6">
+        <div className="max-w-3xl mx-auto">
+          <AnimatedSection className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold">{t.faq.title}</h2>
+          </AnimatedSection>
+
+          <div className="space-y-4">
+            {t.faq.items.map((item, i) => (
+              <AnimatedSection key={i} delay={i * 50}>
+                <div
+                  className="sketch-border bg-white cartoon-shadow overflow-hidden cursor-pointer"
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                >
+                  <div className="p-6 flex justify-between items-center">
+                    <h3 className="font-bold text-lg pr-4">{item.q}</h3>
+                    <span className={`text-2xl transition-transform ${openFaq === i ? 'rotate-45' : ''}`}>+</span>
+                  </div>
+                  <div className={`px-6 overflow-hidden transition-all duration-300 ${openFaq === i ? 'pb-6 max-h-40' : 'max-h-0'}`}>
+                    <p className="opacity-70">{item.a}</p>
+                  </div>
+                </div>
+              </AnimatedSection>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-24 px-6 bg-[#29AB87] text-white border-y-4 border-[#2D3436]">
+        <div className="max-w-6xl mx-auto">
+          <AnimatedSection className="text-center mb-16">
+            <h2 className="text-5xl md:text-6xl font-black mb-6 drop-shadow-lg">{t.pricing.title}</h2>
+            <div className="inline-block bg-[#FFD93D] text-[#2D3436] px-8 py-3 rounded-full text-lg font-black sketch-border cartoon-shadow wiggle">
+              {t.pricing.free}
+            </div>
+          </AnimatedSection>
+
+          <div className="grid md:grid-cols-4 gap-6">
+            {/* Starter */}
+            <AnimatedSection>
+              <div className="bg-white text-[#2D3436] sketch-border p-6 flex flex-col items-center cartoon-shadow h-full">
+                <h3 className="text-xl font-black mb-3 uppercase">{t.pricing.starter.name}</h3>
+                <div className="text-4xl font-black mb-2 text-[#FF6B6B]">{t.pricing.starter.price}</div>
+                <div className="font-bold mb-2">{t.pricing.starter.files}</div>
+                <div className="text-xs opacity-60 mb-4 font-bold">{t.pricing.starter.rate}</div>
+                <div className="bg-[#FFD93D] p-2 text-xs font-black mb-6 sketch-border w-full text-center">
+                  {t.pricing.starter.tag}
+                </div>
+                <a href="https://buy.stripe.com/test_cNi9ATdsK9vafN67l06EU00" className="mt-auto w-full py-3 bg-[#2D3436] text-white rounded-full font-black sketch-border cartoon-shadow-hover text-center transition-all text-sm">
+                  {t.pricing.buy}
+                </a>
+              </div>
+            </AnimatedSection>
+
+            {/* Pro */}
+            <AnimatedSection delay={100}>
+              <div className="bg-[#FFD93D] text-[#2D3436] sketch-border p-6 flex flex-col items-center cartoon-shadow relative transform md:scale-105 z-20 h-full">
+                <div className="absolute -top-4 bg-[#FF6B6B] text-white px-4 py-1 rounded-full text-xs font-black sketch-border cartoon-shadow wiggle">
+                  {t.pricing.pro.badge}
+                </div>
+                <h3 className="text-xl font-black mb-3 uppercase mt-2">{t.pricing.pro.name}</h3>
+                <div className="text-5xl font-black mb-2 text-[#29AB87]">{t.pricing.pro.price}</div>
+                <div className="font-bold mb-2">{t.pricing.pro.files}</div>
+                <div className="text-xs opacity-60 mb-4 font-bold">{t.pricing.pro.rate}</div>
+                <div className="bg-white p-2 text-xs font-black mb-6 sketch-border w-full text-center">
+                  {t.pricing.pro.tag}
+                </div>
+                <a href="https://buy.stripe.com/test_dRm6oH88qgXC30keNs6EU01" className="mt-auto w-full py-3 bg-[#29AB87] text-white rounded-full font-black sketch-border cartoon-shadow-hover text-center transition-all text-sm">
+                  {t.pricing.buy}
+                </a>
+              </div>
+            </AnimatedSection>
+
+            {/* Business */}
+            <AnimatedSection delay={200}>
+              <div className="bg-white text-[#2D3436] sketch-border p-6 flex flex-col items-center cartoon-shadow relative h-full">
+                <div className="absolute -top-4 bg-[#FF6B6B] text-white px-4 py-1 rounded-full text-xs font-black sketch-border cartoon-shadow">
+                  {t.pricing.business.badge}
+                </div>
+                <h3 className="text-xl font-black mb-3 uppercase mt-2">{t.pricing.business.name}</h3>
+                <div className="text-4xl font-black mb-2 text-[#FF6B6B]">{t.pricing.business.price}</div>
+                <div className="font-bold mb-2">{t.pricing.business.files}</div>
+                <div className="text-xs opacity-60 mb-4 font-bold">{t.pricing.business.rate}</div>
+                <div className="bg-[#FFD93D] p-2 text-xs font-black mb-6 sketch-border w-full text-center">
+                  {t.pricing.business.tag}
+                </div>
+                <a href="https://buy.stripe.com/test_6oU14nagy7n20ScgVA6EU02" className="mt-auto w-full py-3 bg-[#2D3436] text-white rounded-full font-black sketch-border cartoon-shadow-hover text-center transition-all text-sm">
+                  {t.pricing.buy}
+                </a>
+              </div>
+            </AnimatedSection>
+
+            {/* Enterprise */}
+            <AnimatedSection delay={300}>
+              <div className="bg-[#FAFAF8] bg-opacity-10 text-white sketch-border p-6 flex flex-col items-center cartoon-shadow h-full">
+                <h3 className="text-xl font-black mb-3 uppercase">{t.pricing.enterprise.name}</h3>
+                <div className="text-2xl font-black mb-2">{t.pricing.enterprise.price}</div>
+                <div className="font-bold mb-2">{t.pricing.enterprise.files}</div>
+                <div className="text-xs opacity-80 mb-4 font-bold">{t.pricing.enterprise.rate}</div>
+                <div className="bg-[#2D3436] p-2 text-xs font-black mb-6 sketch-border w-full text-center">
+                  {t.pricing.enterprise.tag}
+                </div>
+                <a href="mailto:support@neatlify.com" className="mt-auto w-full py-3 bg-white text-[#2D3436] rounded-full font-black sketch-border cartoon-shadow-hover text-center transition-all text-sm">
+                  {t.pricing.contact}
+                </a>
+              </div>
+            </AnimatedSection>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA Section */}
+      <section className="py-24 px-6 bg-[#2D3436] text-white relative overflow-hidden">
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-10 left-10"><LaptopIllustration className="w-32" /></div>
+          <div className="absolute bottom-10 right-10"><DocumentsIllustration className="w-24" /></div>
+          <div className="absolute top-1/2 left-1/4"><FilesImageIllustration className="w-20" /></div>
+        </div>
+        <div className="max-w-3xl mx-auto text-center relative z-10">
+          <AnimatedSection>
+            <h2 className="text-4xl md:text-6xl font-black mb-6">{t.finalCta.title}</h2>
+            <p className="text-xl opacity-80 mb-10">{t.finalCta.subtitle}</p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+              <a href="/downloads/Neatlify.dmg" className="bg-[#29AB87] text-white px-10 py-5 rounded-full text-xl font-black sketch-border cartoon-shadow-hover transition-all pulse">
+                {t.finalCta.cta}
+              </a>
+              <a href="#pricing" className="bg-white text-[#2D3436] px-10 py-5 rounded-full text-xl font-black sketch-border cartoon-shadow-hover transition-all">
+                {t.finalCta.secondary}
+              </a>
+            </div>
+            <p className="text-sm opacity-50">{t.finalCta.trust}</p>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-16 px-6 bg-[#2D3436] text-white border-t-4 border-[#29AB87]">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-8 mb-12">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#29AB87] sketch-border flex items-center justify-center">
+                <span className="text-white font-bold text-2xl">N</span>
+              </div>
+              <span className="text-2xl font-bold tracking-tighter">Neatlify</span>
+            </div>
+            <div className="flex flex-wrap justify-center gap-8 text-sm font-bold">
+              <a href="#/privacy" className="hover:text-[#FF6B6B] transition-all">{t.footer.privacy}</a>
+              <a href="#/terms" className="hover:text-[#FF6B6B] transition-all">{t.footer.terms}</a>
+              <a href="#/support" className="hover:text-[#FF6B6B] transition-all">{t.footer.support}</a>
+            </div>
+            <div className="flex gap-4">
+              {['𝕏', 'in', 'gh'].map((social, i) => (
+                <a key={i} href="#" className="w-10 h-10 sketch-border bg-white bg-opacity-10 flex items-center justify-center font-black cursor-pointer hover:bg-[#FFD93D] hover:text-[#2D3436] transition-all">
+                  {social}
+                </a>
+              ))}
+            </div>
+          </div>
+          <div className="pt-8 border-t border-white border-opacity-10 text-center text-sm opacity-40">
+            {t.footer.rights}
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default LandingPage;

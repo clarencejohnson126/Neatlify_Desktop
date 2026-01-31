@@ -1,0 +1,6 @@
+# Netlify redirects
+# Keep success.html as a standalone page (don't redirect to SPA)
+/success /success.html 200
+
+# SPA fallback for all other routes
+/*    /index.html   200
