@@ -70,34 +70,42 @@ class ClaudeAPIService {
         let systemPrompt = """
         You are an expert file organization assistant for a macOS app called Neatlify.
 
-        Your job is to extract the user's intent for organizing files and suggest optimal categories.
+        Your job is to extract the user's intent. The app supports TWO modes:
+        1. ORGANIZE mode: Move files into category folders
+        2. LABEL mode: Rename files based on their visual content (using AI vision)
 
-        The app CAN access and organize files on the user's Mac. You are part of the application.
+        The app CAN access files on the user's Mac. You are part of the application.
 
-        Always extract:
-        1. Which folder to organize (Desktop, Downloads, Documents, or a custom path)
-        2. What criteria to organize by (file type, date, project, client, topic, etc.)
-        3. Suggested categories based on what the user wants
+        DETERMINE THE MODE:
 
-        CRITICAL - Be smart about number of categories:
+        Use mode: "label" when user wants to RENAME files based on content:
+        - "label these files"
+        - "rename based on what's in them"
+        - "give descriptive names"
+        - "name these photos based on what they show"
+        - "label each file according to what it shows"
 
-        SINGLE FOLDER REQUEST (return ONLY 1 category, NO "other"):
-        - If user says "put all X files in a folder called Y" → return ONLY ["Y"]
-        - If user says "move these into Y" → return ONLY ["Y"]
-        - If user says "organize into Y folder" → return ONLY ["Y"]
-        - If user specifies an explicit single destination folder name, use ONLY that name
-        - Do NOT add "other" or "uncategorized" when user wants a single folder
+        Use mode: "organize" when user wants to MOVE files into folders:
+        - "organize by type"
+        - "sort into folders"
+        - "categorize by client"
+        - "put files in X folder"
 
-        MULTI-CATEGORY REQUEST (return 5-8 categories including "other"):
-        - If user says "organize by file type" → return ["images", "documents", "videos", "archives", "other"]
-        - If user says "sort by construction trade" → return ["electrician", "plumber", "carpenter", "hvac", "other"]
-        - If user says "categorize by client" → return ["Client A", "Client B", "other"]
-        - Only include "other" as fallback when doing multi-category organization
+        FOR LABEL MODE:
+        - Set mode to "label"
+        - Set criteria to describe the labeling style (e.g., "descriptive", "short", "detailed")
+        - Set suggested_categories to empty array []
+
+        FOR ORGANIZE MODE:
+        - Set mode to "organize"
+        - For single folder: return ONLY that category, no "other"
+        - For multi-category: return 5-8 categories including "other"
 
         Examples:
-        - "Put all screenshots in Screenshots Final" → criteria: "single folder", categories: ["Screenshots Final"]
-        - "Move these photos into My Photos" → criteria: "single folder", categories: ["My Photos"]
-        - "Organize by file type" → criteria: "file type", categories: ["images", "documents", "videos", "archives", "other"]
+        - "Label these photos based on what they show" → mode: "label", criteria: "descriptive content labels", categories: []
+        - "Give short fitting label names" → mode: "label", criteria: "short descriptive labels", categories: []
+        - "Put all screenshots in Screenshots Final" → mode: "organize", criteria: "single folder", categories: ["Screenshots Final"]
+        - "Organize by file type" → mode: "organize", criteria: "file type", categories: ["images", "documents", "videos", "other"]
         """
 
         let tool = IntentExtractionTool(
@@ -284,6 +292,73 @@ class ClaudeAPIService {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         Logger.shared.debug("Text analysis response: \(cleanedResponse)")
+
+        guard let data = cleanedResponse.data(using: .utf8),
+              let result = try? JSONDecoder().decode([String: String].self, from: data) else {
+            throw APIError.invalidResponse
+        }
+
+        return result
+    }
+
+    // Generate descriptive labels for images based on their content
+    func generateLabels(_ images: [(filename: String, base64: String)], labelStyle: String) async throws -> [String: String] {
+        let prompt = """
+        Look at these images and generate a short, descriptive filename label for each one.
+
+        Labeling style requested: \(labelStyle)
+
+        Rules for labels:
+        - Keep labels SHORT (2-5 words max)
+        - Use lowercase with underscores (e.g., "beach_sunset", "office_meeting", "cat_sleeping")
+        - Be specific about what's in the image
+        - No file extensions in the label
+        - Make labels unique if images are similar
+
+        Return ONLY valid JSON with this structure (no additional text):
+        {
+          "original_filename1.jpg": "new_label",
+          "original_filename2.png": "another_label"
+        }
+
+        IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.
+        """
+
+        // Build content array with all images and the prompt
+        var contentItems: [ContentItem] = []
+
+        for (filename, base64) in images {
+            contentItems.append(.image(source: ImageSource(type: "base64", mediaType: "image/jpeg", data: base64)))
+            contentItems.append(.text("Filename: \(filename)"))
+        }
+
+        contentItems.append(.text(prompt))
+
+        let messages = [
+            ClaudeMessage(role: "user", content: contentItems)
+        ]
+
+        let request = ClaudeRequest(
+            model: model,
+            maxTokens: 4096,
+            messages: messages
+        )
+
+        let response = try await makeRequest(request)
+        Logger.shared.logAPICall("generateLabels", tokensUsed: response.usage.outputTokens)
+
+        guard let responseText = response.content.first?.text else {
+            throw APIError.invalidResponse
+        }
+
+        // Clean up response
+        let cleanedResponse = responseText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "```json", with: "")
+            .replacingOccurrences(of: "```", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        Logger.shared.debug("Label generation response: \(cleanedResponse)")
 
         guard let data = cleanedResponse.data(using: .utf8),
               let result = try? JSONDecoder().decode([String: String].self, from: data) else {
@@ -556,19 +631,24 @@ class ClaudeAPIService {
             "properties": [
                 "folder": [
                     "type": "string",
-                    "description": "The folder to organize (e.g., 'Desktop', 'Downloads', 'Documents')"
+                    "description": "The folder to work with (e.g., 'Desktop', 'Downloads', 'Documents', or a specific path)"
                 ],
                 "criteria": [
                     "type": "string",
-                    "description": "What to organize by (e.g., 'file type', 'construction trade', 'client name', 'date')"
+                    "description": "For organize mode: what to organize by. For label mode: the labeling style (e.g., 'short descriptive labels', 'detailed content description')"
                 ],
                 "suggested_categories": [
                     "type": "array",
                     "items": ["type": "string"],
-                    "description": "Categories for organization. For single-folder requests (user specifies one destination like 'put in X folder'), return ONLY that single category name. For multi-category organization (sort by type, trade, etc.), return 5-8 categories including 'other' as fallback."
+                    "description": "For organize mode: categories to sort into. For label mode: empty array []"
+                ],
+                "mode": [
+                    "type": "string",
+                    "enum": ["organize", "label"],
+                    "description": "Mode of operation: 'organize' to move files into folders, 'label' to rename files based on their visual content"
                 ]
             ],
-            "required": ["folder", "criteria", "suggested_categories"]
+            "required": ["folder", "criteria", "suggested_categories", "mode"]
         ]
     }
 

@@ -169,6 +169,64 @@ class FileService {
         Logger.shared.info("Organization complete: \(movedCount)/\(files.count) files moved")
     }
 
+    // Rename file in place (for labeling mode)
+    func renameFile(from sourceURL: URL, newName: String) async throws -> URL {
+        let directory = sourceURL.deletingLastPathComponent()
+        let fileExtension = sourceURL.pathExtension
+        let newFilename = newName.isEmpty ? sourceURL.deletingPathExtension().lastPathComponent : newName
+        var destinationURL = directory.appendingPathComponent(newFilename).appendingPathExtension(fileExtension)
+
+        // Ensure unique name
+        if fileManager.fileExists(atPath: destinationURL.path) && destinationURL != sourceURL {
+            destinationURL = generateUniqueURL(for: destinationURL)
+        }
+
+        // Don't rename if it's the same path
+        guard destinationURL != sourceURL else {
+            return sourceURL
+        }
+
+        try fileManager.moveItem(at: sourceURL, to: destinationURL)
+        Logger.shared.logFileOperation("Renamed", path: "\(sourceURL.lastPathComponent) -> \(destinationURL.lastPathComponent)")
+
+        // Record operation for undo
+        recordOperation(.move(from: destinationURL, to: sourceURL))
+
+        return destinationURL
+    }
+
+    // Label (rename) files according to plan
+    func labelFiles(_ files: [FileItem], plan: OrganizationPlan, progressHandler: @escaping @MainActor (Int, Int) -> Void) async throws {
+        var renamedCount = 0
+        var skippedCount = 0
+
+        for file in files {
+            guard let newLabel = plan.fileLabels[file.id] else {
+                continue
+            }
+
+            // Check if source file still exists
+            guard fileManager.fileExists(atPath: file.url.path) else {
+                Logger.shared.info("Skipping missing file: \(file.name)")
+                skippedCount += 1
+                continue
+            }
+
+            do {
+                _ = try await renameFile(from: file.url, newName: newLabel)
+                renamedCount += 1
+                await progressHandler(renamedCount, files.count)
+            } catch {
+                Logger.shared.error("Failed to rename file: \(file.name)", error: error)
+            }
+        }
+
+        if skippedCount > 0 {
+            Logger.shared.info("Skipped \(skippedCount) missing files")
+        }
+        Logger.shared.info("Labeling complete: \(renamedCount)/\(files.count) files renamed")
+    }
+
     // Generate unique filename if destination exists
     private func generateUniqueURL(for url: URL) -> URL {
         let directory = url.deletingLastPathComponent()

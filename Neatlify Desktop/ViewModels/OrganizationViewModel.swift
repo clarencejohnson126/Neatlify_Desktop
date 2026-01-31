@@ -91,7 +91,6 @@ class OrganizationViewModel: ObservableObject {
         isExecuting = true
         showPreview = false  // Hide preview immediately
         currentStep = .organizingFiles
-        statusMessage = "Organizing files..."
 
         // Start accessing security-scoped resource
         let didStartAccessing = folderURL.startAccessingSecurityScopedResource()
@@ -103,38 +102,56 @@ class OrganizationViewModel: ObservableObject {
         }
 
         do {
-            // Determine folder structure based on number of categories
-            let folderMap: [String: URL]
+            // Branch based on mode
+            if plan.mode == .label {
+                // LABEL MODE: Rename files in place
+                statusMessage = "Renaming files..."
 
-            if plan.categories.count == 1 {
-                // Single category: create folder directly in source folder (no timestamp wrapper)
-                let categoryName = plan.categories[0]
-                let categoryURL = folderURL.appendingPathComponent(categoryName)
-                if !FileManager.default.fileExists(atPath: categoryURL.path) {
-                    try FileManager.default.createDirectory(at: categoryURL, withIntermediateDirectories: true)
+                try await fileService.labelFiles(scannedFiles, plan: plan) { @MainActor processed, total in
+                    self.processedFiles = processed
+                    self.totalFiles = total
+                    self.progress = Double(processed) / Double(total)
+                    self.statusMessage = "Renaming files... \(processed)/\(total)"
                 }
-                folderMap = [categoryName: categoryURL]
-                Logger.shared.info("Single category mode: creating '\(categoryName)' directly")
+
+                statusMessage = "Labeling complete! \(processedFiles) files renamed."
+
             } else {
-                // Multiple categories: create timestamped parent folder
-                let dateFormatter = DateFormatter()
-                dateFormatter.dateFormat = "yyyy-MM-dd-HHmmss"
-                let timestamp = dateFormatter.string(from: Date())
+                // ORGANIZE MODE: Move files into folders
+                statusMessage = "Organizing files..."
 
-                let organizedFolderURL = folderURL.appendingPathComponent("Organized_\(timestamp)")
-                try FileManager.default.createDirectory(at: organizedFolderURL, withIntermediateDirectories: true)
+                let folderMap: [String: URL]
 
-                // Create category folders inside
-                folderMap = try await fileService.createFolders(plan.categories, in: organizedFolderURL)
-                Logger.shared.info("Multi-category mode: creating \(plan.categories.count) folders in Organized_\(timestamp)")
-            }
+                if plan.categories.count == 1 {
+                    // Single category: create folder directly in source folder
+                    let categoryName = plan.categories[0]
+                    let categoryURL = folderURL.appendingPathComponent(categoryName)
+                    if !FileManager.default.fileExists(atPath: categoryURL.path) {
+                        try FileManager.default.createDirectory(at: categoryURL, withIntermediateDirectories: true)
+                    }
+                    folderMap = [categoryName: categoryURL]
+                    Logger.shared.info("Single category mode: creating '\(categoryName)' directly")
+                } else {
+                    // Multiple categories: create timestamped parent folder
+                    let dateFormatter = DateFormatter()
+                    dateFormatter.dateFormat = "yyyy-MM-dd-HHmmss"
+                    let timestamp = dateFormatter.string(from: Date())
 
-            // Move files (progress handler is @MainActor)
-            try await fileService.organizeFiles(scannedFiles, plan: plan, folderMap: folderMap) { @MainActor processed, total in
-                self.processedFiles = processed
-                self.totalFiles = total
-                self.progress = Double(processed) / Double(total)
-                self.statusMessage = "Moving files... \(processed)/\(total)"
+                    let organizedFolderURL = folderURL.appendingPathComponent("Organized_\(timestamp)")
+                    try FileManager.default.createDirectory(at: organizedFolderURL, withIntermediateDirectories: true)
+
+                    folderMap = try await fileService.createFolders(plan.categories, in: organizedFolderURL)
+                    Logger.shared.info("Multi-category mode: creating \(plan.categories.count) folders in Organized_\(timestamp)")
+                }
+
+                try await fileService.organizeFiles(scannedFiles, plan: plan, folderMap: folderMap) { @MainActor processed, total in
+                    self.processedFiles = processed
+                    self.totalFiles = total
+                    self.progress = Double(processed) / Double(total)
+                    self.statusMessage = "Moving files... \(processed)/\(total)"
+                }
+
+                statusMessage = "Organization complete! \(processedFiles) files organized."
             }
 
             // Deduct credits server-side (or mark free trial used locally)
@@ -142,14 +159,11 @@ class OrganizationViewModel: ObservableObject {
             let fileCount = scannedFiles.count
 
             if session.isAccountLinked {
-                // Server-side credit deduction
                 let deductSuccess = await session.deductCreditsServerSide(fileCount: fileCount)
                 if !deductSuccess {
                     Logger.shared.error("Warning: Server-side credit deduction failed")
-                    // Continue anyway - files are already moved
                 }
             } else {
-                // Local free trial tracking
                 session.recordCleanup(fileCount: fileCount)
                 session.save()
             }
@@ -162,7 +176,6 @@ class OrganizationViewModel: ObservableObject {
 
             // Complete
             currentStep = .completed
-            statusMessage = "Organization complete! \(processedFiles) files organized."
             isExecuting = false
 
             // Log usage
@@ -205,7 +218,7 @@ class OrganizationViewModel: ObservableObject {
         progress = 0.1
 
         let intent = try await apiService.parseIntent(message)
-        Logger.shared.info("Parsed intent: \(intent.criteria)")
+        Logger.shared.info("Parsed intent: mode=\(intent.mode.rawValue), criteria=\(intent.criteria)")
 
         // Store intent for later use
         self.organizationPlan = OrganizationPlan(
@@ -213,7 +226,9 @@ class OrganizationViewModel: ObservableObject {
             criteria: intent.criteria,
             categories: intent.suggestedCategories,
             fileAssignments: [:],
-            suggestedFolderStructure: [:]
+            suggestedFolderStructure: [:],
+            mode: intent.mode,
+            fileLabels: [:]
         )
     }
 
@@ -275,7 +290,6 @@ class OrganizationViewModel: ObservableObject {
         }
 
         currentStep = .analyzingFiles
-        statusMessage = "Analyzing files with AI..."
         progress = 0.4
 
         // Start accessing security-scoped resource
@@ -286,6 +300,81 @@ class OrganizationViewModel: ObservableObject {
                 folderURL.stopAccessingSecurityScopedResource()
             }
         }
+
+        // Branch based on mode
+        if plan.mode == .label {
+            try await analyzeFilesForLabeling(plan: plan)
+        } else {
+            try await analyzeFilesForOrganizing(plan: plan)
+        }
+
+        progress = 0.9
+    }
+
+    // MARK: - Label Mode Analysis
+
+    private func analyzeFilesForLabeling(plan: OrganizationPlan) async throws {
+        statusMessage = "Generating labels with AI vision..."
+
+        var fileLabels: [UUID: String] = [:]
+
+        // Only process images for labeling (PDFs don't get visual labels)
+        let images = scannedFiles.filter { $0.fileType == .image }
+
+        if images.isEmpty {
+            throw OrganizationError.noFilesFound
+        }
+
+        let imageBatches = images.chunked(into: 10)
+
+        for (index, batch) in imageBatches.enumerated() {
+            // Encode images
+            let encodedImages = try await ImageProcessor.encodeImages(at: batch.map { $0.url })
+
+            // Prepare for API
+            let imageData = encodedImages.map { (filename: $0.url.lastPathComponent, base64: $0.base64) }
+
+            // Generate labels
+            let results = try await apiService.generateLabels(imageData, labelStyle: plan.criteria)
+
+            // Map results to FileItems
+            for file in batch {
+                if let label = results[file.name] {
+                    fileLabels[file.id] = label
+                    Logger.shared.debug("Label for \(file.name): \(label)")
+                }
+            }
+
+            // Update progress
+            let batchProgress = Double(index + 1) / Double(imageBatches.count)
+            progress = 0.4 + (batchProgress * 0.5) // 40% to 90%
+            let processedCount = min((index + 1) * 10, images.count)
+            statusMessage = "Generating labels... \(processedCount)/\(images.count)"
+
+            // Small delay between batches
+            if index < imageBatches.count - 1 {
+                try await Task.sleep(nanoseconds: 2_000_000_000)
+            }
+        }
+
+        // Create final plan with labels
+        self.organizationPlan = OrganizationPlan(
+            sourceFolder: selectedFolderURL!,
+            criteria: plan.criteria,
+            categories: [],
+            fileAssignments: [:],
+            suggestedFolderStructure: [:],
+            mode: .label,
+            fileLabels: fileLabels
+        )
+
+        Logger.shared.info("Generated \(fileLabels.count) labels")
+    }
+
+    // MARK: - Organize Mode Analysis
+
+    private func analyzeFilesForOrganizing(plan: OrganizationPlan) async throws {
+        statusMessage = "Analyzing files with AI..."
 
         var fileAssignments: [UUID: String] = [:]
         var categoryCounts: [String: Int] = [:]
@@ -299,27 +388,22 @@ class OrganizationViewModel: ObservableObject {
         let images = scannedFiles.filter { $0.fileType == .image }
         let pdfs = scannedFiles.filter { $0.fileType == .pdf }
 
-        // Process images in batches of 10 (reduced to avoid rate limits)
+        // Process images in batches of 10
         if !images.isEmpty {
             statusMessage = "Analyzing \(images.count) images..."
 
             let imageBatches = images.chunked(into: 10)
 
             for (index, batch) in imageBatches.enumerated() {
-                // Encode images
                 let encodedImages = try await ImageProcessor.encodeImages(at: batch.map { $0.url })
-
-                // Prepare for API
                 let imageData = encodedImages.map { (filename: $0.url.lastPathComponent, base64: $0.base64) }
 
-                // Analyze batch
                 let results = try await apiService.analyzeImages(
                     imageData,
                     criteria: plan.criteria,
                     categories: plan.categories
                 )
 
-                // Map results to FileItems
                 for file in batch {
                     if let category = results[file.name] {
                         fileAssignments[file.id] = category
@@ -327,27 +411,24 @@ class OrganizationViewModel: ObservableObject {
                     }
                 }
 
-                // Update progress
                 let batchProgress = Double(index + 1) / Double(imageBatches.count)
-                progress = 0.4 + (batchProgress * 0.3) // 40% to 70%
+                progress = 0.4 + (batchProgress * 0.3)
                 let processedCount = min((index + 1) * 10, images.count)
                 statusMessage = "Analyzing images... \(processedCount)/\(images.count)"
 
-                // Small delay between batches to avoid rate limits
                 if index < imageBatches.count - 1 {
-                    try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                    try await Task.sleep(nanoseconds: 2_000_000_000)
                 }
             }
         }
 
-        // Process PDFs in batches of 5 (reduced to avoid rate limits)
+        // Process PDFs in batches of 5
         if !pdfs.isEmpty {
             statusMessage = "Analyzing \(pdfs.count) PDFs..."
 
             let pdfBatches = pdfs.chunked(into: 5)
 
             for (index, batch) in pdfBatches.enumerated() {
-                // Extract text from PDFs
                 var textData: [(filename: String, content: String)] = []
 
                 for pdf in batch {
@@ -357,14 +438,12 @@ class OrganizationViewModel: ObservableObject {
                 }
 
                 if !textData.isEmpty {
-                    // Analyze batch
                     let results = try await apiService.analyzeText(
                         textData,
                         criteria: plan.criteria,
                         categories: plan.categories
                     )
 
-                    // Map results to FileItems
                     for file in batch {
                         if let category = results[file.name] {
                             fileAssignments[file.id] = category
@@ -373,15 +452,13 @@ class OrganizationViewModel: ObservableObject {
                     }
                 }
 
-                // Update progress
                 let batchProgress = Double(index + 1) / Double(pdfBatches.count)
-                progress = 0.7 + (batchProgress * 0.2) // 70% to 90%
+                progress = 0.7 + (batchProgress * 0.2)
                 let processedCount = min((index + 1) * 5, pdfs.count)
                 statusMessage = "Analyzing PDFs... \(processedCount)/\(pdfs.count)"
 
-                // Small delay between batches
                 if index < pdfBatches.count - 1 {
-                    try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                    try await Task.sleep(nanoseconds: 2_000_000_000)
                 }
             }
         }
@@ -392,10 +469,10 @@ class OrganizationViewModel: ObservableObject {
             criteria: plan.criteria,
             categories: plan.categories,
             fileAssignments: fileAssignments,
-            suggestedFolderStructure: categoryCounts
+            suggestedFolderStructure: categoryCounts,
+            mode: .organize,
+            fileLabels: [:]
         )
-
-        progress = 0.9
     }
 
     private func showPreviewForConfirmation() {
