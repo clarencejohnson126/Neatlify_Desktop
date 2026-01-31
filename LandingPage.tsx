@@ -174,9 +174,6 @@ const LandingPage: React.FC = () => {
   return (
     <div className="min-h-screen relative overflow-x-hidden selection:bg-[#FFD93D] selection:text-[#2D3436]">
       {/* Background Decorations */}
-      <div className="absolute top-40 -left-10 opacity-15 pointer-events-none float">
-        <BicycleIllustration className="w-48 h-auto" />
-      </div>
       <div className="absolute top-[800px] -right-10 opacity-10 pointer-events-none wiggle">
         <LaptopIllustration className="w-40 h-auto" />
       </div>
@@ -206,11 +203,7 @@ const LandingPage: React.FC = () => {
           <div className="hidden md:flex items-center gap-6 font-bold text-sm">
             <a href="#features" className="hover:text-[#29AB87] transition-all">{t.nav.features}</a>
             <a href="#how" className="hover:text-[#29AB87] transition-all">{t.nav.howItWorks}</a>
-            <a href="#professionals" className="hover:text-[#29AB87] transition-all">{t.nav.professionals}</a>
             <a href="#pricing" className="hover:text-[#29AB87] transition-all">{t.nav.pricing}</a>
-            <a href="/downloads/Neatlify.dmg" className="bg-[#29AB87] text-white px-6 py-2 rounded-full sketch-border cartoon-shadow-hover transition-all">
-              {t.nav.download}
-            </a>
           </div>
 
           <div className="flex items-center gap-3">
@@ -247,7 +240,7 @@ const LandingPage: React.FC = () => {
 
       {/* Hero Section */}
       <section className="pt-44 pb-20 px-6 relative">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+        <div className="max-w-6xl mx-auto">
           <AnimatedSection className="space-y-6 relative z-10">
             <div className="flex flex-wrap gap-3">
               <div className="inline-block bg-[#29AB87] text-white px-4 py-1 rounded-full text-sm font-bold sketch-border cartoon-shadow">
@@ -277,38 +270,6 @@ const LandingPage: React.FC = () => {
             <div className="text-sm text-[#2D3436] opacity-60 flex items-center gap-3 font-bold">
               <span className="bg-[#FFD93D] p-2 rounded-lg sketch-border"></span>
               {t.hero.requirements} • {t.hero.version}
-            </div>
-          </AnimatedSection>
-
-          <AnimatedSection delay={200} className="relative">
-            <div className="sketch-border bg-white p-6 cartoon-shadow relative transform -rotate-1 hover:rotate-0 transition-all duration-500">
-              <div className="grid grid-cols-2 gap-4 relative z-10">
-                <div className="space-y-3 text-center">
-                  <span className="font-black text-[#FF6B6B] block uppercase tracking-widest text-xs">Messy</span>
-                  <div className="bg-[#FAFAF8] p-3 sketch-border">
-                    <MessyDeskIllustration className="w-full h-auto" />
-                  </div>
-                </div>
-                <div className="space-y-3 text-center">
-                  <span className="font-black text-[#29AB87] block uppercase tracking-widest text-xs">Organized</span>
-                  <div className="bg-[#FAFAF8] p-3 sketch-border">
-                    <CleanDeskIllustration className="w-full h-auto" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="absolute -top-8 -left-8 wiggle">
-                <StickyNoteIllustration text="TODO" color="#FFD93D" className="w-20 h-20" />
-              </div>
-              <div className="absolute -bottom-8 -right-4 transform rotate-12 float">
-                <div className="bg-[#FF6B6B] text-white sketch-border px-4 py-2 font-black cartoon-shadow text-sm">
-                  ✨ Smart Organization
-                </div>
-              </div>
-            </div>
-            {/* Decorative woman illustration */}
-            <div className="absolute -bottom-16 -left-16 opacity-20 pointer-events-none">
-              <WomanWithLaptopIllustration className="w-32 h-auto" />
             </div>
           </AnimatedSection>
         </div>
@@ -422,117 +383,6 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Professionals Section */}
-      <section id="professionals" className="py-24 px-6 bg-[#2D3436] text-white relative overflow-hidden">
-        <div className="absolute top-10 right-10 opacity-10">
-          <ConstructionWorkerIllustration className="w-40 h-auto" />
-        </div>
-        <div className="absolute bottom-20 left-10 opacity-10">
-          <ExcavatorIllustration className="w-48 h-auto" />
-        </div>
-
-        <div className="max-w-6xl mx-auto relative z-10">
-          <AnimatedSection className="text-center mb-16">
-            <div className="inline-flex items-center gap-3 bg-[#FF6B6B] text-white px-6 py-2 rounded-full text-sm font-black sketch-border cartoon-shadow mb-6">
-              <HardHatIcon className="w-5 h-5" />
-              <span>PRO FEATURES</span>
-            </div>
-            <h2 className="text-4xl md:text-5xl font-black mb-4">{t.professionals.title}</h2>
-            <p className="text-xl opacity-80 max-w-2xl mx-auto">{t.professionals.subtitle}</p>
-          </AnimatedSection>
-
-          {/* Before/After */}
-          <div className="grid md:grid-cols-2 gap-6 mb-16">
-            <AnimatedSection>
-              <div className="sketch-border bg-white bg-opacity-5 p-4 relative">
-                <div className="absolute -top-3 left-4 bg-[#FF6B6B] text-white px-3 py-1 rounded-full text-xs font-black sketch-border">BEFORE</div>
-                <ConstructionSiteIllustration className="w-full h-auto" />
-              </div>
-            </AnimatedSection>
-            <AnimatedSection delay={200}>
-              <div className="sketch-border bg-white bg-opacity-10 p-4 relative">
-                <div className="absolute -top-3 left-4 bg-[#29AB87] text-white px-3 py-1 rounded-full text-xs font-black sketch-border">AFTER</div>
-                <OrganizedFilesIllustration className="w-full h-auto" />
-              </div>
-            </AnimatedSection>
-          </div>
-
-          {/* Use Cases with Flip Cards */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-16">
-            {[
-              { icon: <CameraIcon />, ...t.professionals.useCases[0], color: '#29AB87' },
-              { icon: <TagIcon />, ...t.professionals.useCases[1], color: '#FFD93D' },
-              { icon: <BlueprintIcon />, ...t.professionals.useCases[2], color: '#FF6B6B' },
-              { icon: <BuildingIcon />, ...t.professionals.useCases[3], color: '#29AB87' },
-            ].map((useCase, i) => (
-              <AnimatedSection key={i} delay={i * 100}>
-                <FlipCard
-                  className="h-[260px]"
-                  front={
-                    <div className="h-full flex flex-col card-content text-[#2D3436]">
-                      <div className="w-10 h-10 sketch-border flex items-center justify-center mb-3 flex-shrink-0" style={{backgroundColor: useCase.color}}>
-                        <div className="text-white scale-75">{useCase.icon}</div>
-                      </div>
-                      <div className="text-[10px] font-black uppercase tracking-wider opacity-60 mb-1">{useCase.tag}</div>
-                      <h3 className="text-base font-bold mb-2">{useCase.title}</h3>
-                      <p className="text-xs opacity-70 leading-relaxed">{useCase.desc}</p>
-                    </div>
-                  }
-                  back={
-                    <div className="h-full flex flex-col card-content">
-                      <h3 className="text-sm font-bold mb-2 text-[#FFD93D]">{useCase.backTitle}</h3>
-                      <p className="text-[11px] opacity-80 mb-2 leading-relaxed">{useCase.backDesc}</p>
-                      <ul className="text-[10px] space-y-1 mt-auto">
-                        {useCase.backList.map((item: string, j: number) => (
-                          <li key={j} className="flex items-center gap-1">
-                            <span className="text-[#29AB87]">✓</span> {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  }
-                />
-              </AnimatedSection>
-            ))}
-          </div>
-
-          {/* Trades/Gewerke Section */}
-          <AnimatedSection>
-            <div className="bg-white bg-opacity-5 sketch-border p-6 mb-12">
-              <div className="flex items-center gap-3 mb-4">
-                <TradesIcon className="w-8 h-8 text-[#FFD93D]" />
-                <h3 className="text-2xl font-bold">{t.professionals.trades.title}</h3>
-              </div>
-              <p className="opacity-70 mb-6">{t.professionals.trades.subtitle}</p>
-              <div className="flex flex-wrap gap-3">
-                {t.professionals.trades.list.map((trade, i) => (
-                  <span key={i} className="bg-white bg-opacity-10 px-4 py-2 rounded-full text-sm font-bold sketch-border hover:bg-[#29AB87] transition-all cursor-default">
-                    {trade}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </AnimatedSection>
-
-          {/* Stats */}
-          <div className="flex flex-wrap justify-center gap-12 mb-10">
-            <AnimatedSection className="text-center">
-              <div className="text-4xl md:text-5xl font-black text-[#FFD93D]">{t.professionals.stats.time}</div>
-              <div className="text-sm opacity-60 uppercase tracking-wider font-bold">{t.professionals.stats.timeLabel}</div>
-            </AnimatedSection>
-            <AnimatedSection delay={200} className="text-center">
-              <div className="text-4xl md:text-5xl font-black text-[#29AB87]">{t.professionals.stats.files}</div>
-              <div className="text-sm opacity-60 uppercase tracking-wider font-bold">{t.professionals.stats.filesLabel}</div>
-            </AnimatedSection>
-          </div>
-
-          <AnimatedSection className="text-center">
-            <a href="#pricing" className="inline-block bg-[#FFD93D] text-[#2D3436] px-10 py-4 rounded-full text-xl font-black sketch-border cartoon-shadow-hover transition-all">
-              {t.professionals.cta}
-            </a>
-          </AnimatedSection>
-        </div>
-      </section>
 
       {/* How AI Works Section */}
       <section className="py-24 px-6 bg-white">
@@ -711,7 +561,7 @@ const LandingPage: React.FC = () => {
                 <div className="bg-[#2D3436] p-2 text-xs font-black mb-6 sketch-border w-full text-center">
                   {t.pricing.enterprise.tag}
                 </div>
-                <a href="mailto:support@neatlify.com" className="mt-auto w-full py-3 bg-white text-[#2D3436] rounded-full font-black sketch-border cartoon-shadow-hover text-center transition-all text-sm">
+                <a href="mailto:hello@neatlify.app" className="mt-auto w-full py-3 bg-white text-[#2D3436] rounded-full font-black sketch-border cartoon-shadow-hover text-center transition-all text-sm">
                   {t.pricing.contact}
                 </a>
               </div>

@@ -288,9 +288,6 @@ const ConstructionPage: React.FC = () => {
       <div className="absolute top-40 -left-10 opacity-10 pointer-events-none">
         <ExcavatorIllustration className="w-48 h-auto" />
       </div>
-      <div className="absolute top-[800px] -right-20 opacity-10 pointer-events-none">
-        <ConstructionWorkerIllustration className="w-40 h-auto" />
-      </div>
 
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 bg-[#FAFAF8] bg-opacity-95 backdrop-blur-md z-50 border-b-4 border-[#2D3436] py-4">
@@ -306,9 +303,6 @@ const ConstructionPage: React.FC = () => {
             <a href="#/" className="hover:text-[#29AB87] transition-all">{lang === 'EN' ? 'Home' : 'Startseite'}</a>
             <a href="#/#features" className="hover:text-[#29AB87] transition-all">{t.nav.features}</a>
             <a href="#/#pricing" className="hover:text-[#29AB87] transition-all">{t.nav.pricing}</a>
-            <a href="/downloads/Neatlify.dmg" className="bg-[#29AB87] text-white px-6 py-2 rounded-full sketch-border cartoon-shadow-hover transition-all">
-              {t.nav.download}
-            </a>
           </div>
 
           <div className="flex items-center gap-3">
