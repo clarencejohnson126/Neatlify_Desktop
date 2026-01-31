@@ -15,13 +15,23 @@ class PermissionsService {
 
     // Request folder access from user using NSOpenPanel
     @MainActor
-    func requestFolderAccess(message: String = "Select a folder to organize") async -> URL? {
+    func requestFolderAccess(message: String = "Select a folder to organize", startingAt: URL? = nil) async -> URL? {
         let panel = NSOpenPanel()
         panel.message = message
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = false
+
+        // Set starting directory if provided
+        if let startURL = startingAt {
+            // Try to use the exact path, or its parent if it doesn't exist
+            if FileManager.default.fileExists(atPath: startURL.path) {
+                panel.directoryURL = startURL
+            } else if FileManager.default.fileExists(atPath: startURL.deletingLastPathComponent().path) {
+                panel.directoryURL = startURL.deletingLastPathComponent()
+            }
+        }
 
         let response = panel.runModal()
 

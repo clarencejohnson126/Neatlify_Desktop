@@ -29,6 +29,7 @@ class OrganizationViewModel: ObservableObject {
 
     private var scannedFiles: [FileItem] = []
     private var selectedFolderURL: URL?
+    private var userSpecifiedFolderPath: String?
 
     struct PricingInfo {
         let totalFiles: Int
@@ -194,6 +195,7 @@ class OrganizationViewModel: ObservableObject {
         organizationPlan = nil
         scannedFiles.removeAll()
         selectedFolderURL = nil
+        userSpecifiedFolderPath = nil
     }
 
     func reset() {
@@ -208,6 +210,7 @@ class OrganizationViewModel: ObservableObject {
         organizationPlan = nil
         scannedFiles.removeAll()
         selectedFolderURL = nil
+        userSpecifiedFolderPath = nil
     }
 
     // MARK: - Private Methods
@@ -218,7 +221,13 @@ class OrganizationViewModel: ObservableObject {
         progress = 0.1
 
         let intent = try await apiService.parseIntent(message)
-        Logger.shared.info("Parsed intent: mode=\(intent.mode.rawValue), criteria=\(intent.criteria)")
+        Logger.shared.info("Parsed intent: mode=\(intent.mode.rawValue), criteria=\(intent.criteria), folder=\(intent.folder)")
+
+        // Store user-specified folder path if it looks like an absolute path
+        if intent.folder.hasPrefix("/") || intent.folder.hasPrefix("~") {
+            userSpecifiedFolderPath = intent.folder.replacingOccurrences(of: "~", with: NSHomeDirectory())
+            Logger.shared.info("User specified folder path: \(userSpecifiedFolderPath ?? "none")")
+        }
 
         // Store intent for later use
         self.organizationPlan = OrganizationPlan(
@@ -237,8 +246,25 @@ class OrganizationViewModel: ObservableObject {
         statusMessage = "Requesting folder access..."
         progress = 0.2
 
+        // Determine starting location for folder picker
+        var startingURL: URL? = nil
+        if let specifiedPath = userSpecifiedFolderPath {
+            startingURL = URL(fileURLWithPath: specifiedPath)
+            Logger.shared.info("Opening folder picker at: \(specifiedPath)")
+        }
+
+        // Create appropriate message based on mode
+        let plan = organizationPlan
+        let message: String
+        if plan?.mode == .label {
+            message = "Select the folder containing files to label/rename"
+        } else {
+            message = "Select the folder you want to organize"
+        }
+
         guard let url = await permissionsService.requestFolderAccess(
-            message: "Select the folder you want to organize"
+            message: message,
+            startingAt: startingURL
         ) else {
             throw OrganizationError.accessDenied
         }
