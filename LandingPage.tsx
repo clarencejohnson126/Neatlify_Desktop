@@ -1,6 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { translations, Language } from './translations';
+import { useAuth } from './contexts/AuthContext';
+import AuthModal from './components/AuthModal';
+import UserMenu from './components/UserMenu';
 import {
   FolderIcon,
   AiScanIcon,
@@ -103,8 +106,53 @@ const LandingPage: React.FC = () => {
     return (saved as Language) || 'EN';
   });
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
 
+  const { user, loading: authLoading } = useAuth();
   const t = translations[lang];
+
+  const openAuth = (mode: 'login' | 'signup') => {
+    setAuthModalMode(mode);
+    setAuthModalOpen(true);
+  };
+
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
+  const handleCheckout = async (productType: 'starter' | 'pro' | 'business') => {
+    // Require login first
+    if (!user) {
+      openAuth('login');
+      return;
+    }
+
+    setCheckoutLoading(productType);
+    try {
+      const response = await fetch('https://nlvlwrhayrvberdyjgjx.supabase.co/functions/v1/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productType,
+          userEmail: user.email,
+          successUrl: `${window.location.origin}/#/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${window.location.origin}/#pricing`,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        console.error('No checkout URL returned:', data);
+        alert('Failed to create checkout. Please try again.');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to create checkout. Please try again.');
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
 
   useEffect(() => {
     localStorage.setItem('neatlify_lang', lang);
@@ -165,12 +213,26 @@ const LandingPage: React.FC = () => {
             </a>
           </div>
 
-          <button
-            onClick={toggleLang}
-            className="sketch-border px-4 py-2 text-sm font-bold bg-[#FFD93D] cartoon-shadow-hover transition-all ml-4"
-          >
-            {lang === 'EN' ? 'EN | DE' : 'DE | EN'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleLang}
+              className="sketch-border px-4 py-2 text-sm font-bold bg-[#FFD93D] cartoon-shadow-hover transition-all"
+            >
+              {lang === 'EN' ? 'EN | DE' : 'DE | EN'}
+            </button>
+
+            {/* Auth section - always show Sign In unless explicitly logged in */}
+            {user && !authLoading ? (
+              <UserMenu onBuyCredits={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} />
+            ) : (
+              <button
+                onClick={() => openAuth('login')}
+                className="sketch-border px-4 py-2 text-sm font-bold bg-white text-[#2D3436] cartoon-shadow-hover transition-all hover:bg-[#29AB87] hover:text-white"
+              >
+                {lang === 'EN' ? 'Sign In' : 'Anmelden'}
+              </button>
+            )}
+          </div>
         </div>
       </nav>
 
@@ -574,9 +636,13 @@ const LandingPage: React.FC = () => {
                 <div className="bg-[#FFD93D] p-2 text-xs font-black mb-6 sketch-border w-full text-center">
                   {t.pricing.starter.tag}
                 </div>
-                <a href="https://buy.stripe.com/test_cNi9ATdsK9vafN67l06EU00" className="mt-auto w-full py-3 bg-[#2D3436] text-white rounded-full font-black sketch-border cartoon-shadow-hover text-center transition-all text-sm">
-                  {t.pricing.buy}
-                </a>
+                <button
+                  onClick={() => handleCheckout('starter')}
+                  disabled={checkoutLoading === 'starter'}
+                  className="mt-auto w-full py-3 bg-[#2D3436] text-white rounded-full font-black sketch-border cartoon-shadow-hover text-center transition-all text-sm disabled:opacity-50"
+                >
+                  {checkoutLoading === 'starter' ? 'Loading...' : t.pricing.buy}
+                </button>
               </div>
             </AnimatedSection>
 
@@ -593,9 +659,13 @@ const LandingPage: React.FC = () => {
                 <div className="bg-white p-2 text-xs font-black mb-6 sketch-border w-full text-center">
                   {t.pricing.pro.tag}
                 </div>
-                <a href="https://buy.stripe.com/test_dRm6oH88qgXC30keNs6EU01" className="mt-auto w-full py-3 bg-[#29AB87] text-white rounded-full font-black sketch-border cartoon-shadow-hover text-center transition-all text-sm">
-                  {t.pricing.buy}
-                </a>
+                <button
+                  onClick={() => handleCheckout('pro')}
+                  disabled={checkoutLoading === 'pro'}
+                  className="mt-auto w-full py-3 bg-[#29AB87] text-white rounded-full font-black sketch-border cartoon-shadow-hover text-center transition-all text-sm disabled:opacity-50"
+                >
+                  {checkoutLoading === 'pro' ? 'Loading...' : t.pricing.buy}
+                </button>
               </div>
             </AnimatedSection>
 
@@ -612,9 +682,13 @@ const LandingPage: React.FC = () => {
                 <div className="bg-[#FFD93D] p-2 text-xs font-black mb-6 sketch-border w-full text-center">
                   {t.pricing.business.tag}
                 </div>
-                <a href="https://buy.stripe.com/test_6oU14nagy7n20ScgVA6EU02" className="mt-auto w-full py-3 bg-[#2D3436] text-white rounded-full font-black sketch-border cartoon-shadow-hover text-center transition-all text-sm">
-                  {t.pricing.buy}
-                </a>
+                <button
+                  onClick={() => handleCheckout('business')}
+                  disabled={checkoutLoading === 'business'}
+                  className="mt-auto w-full py-3 bg-[#2D3436] text-white rounded-full font-black sketch-border cartoon-shadow-hover text-center transition-all text-sm disabled:opacity-50"
+                >
+                  {checkoutLoading === 'business' ? 'Loading...' : t.pricing.buy}
+                </button>
               </div>
             </AnimatedSection>
 
@@ -689,6 +763,13 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        initialMode={authModalMode}
+      />
     </div>
   );
 };
