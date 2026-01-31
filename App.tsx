@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
+import { AuthProvider } from './contexts/AuthContext';
 import LandingPage from './LandingPage';
 import SuccessPage from './SuccessPage';
+import AccountPage from './AccountPage';
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const [currentPath, setCurrentPath] = useState(window.location.hash);
 
   useEffect(() => {
@@ -20,7 +22,19 @@ const App: React.FC = () => {
     return <SuccessPage />;
   }
 
+  if (currentPath.startsWith('#/account')) {
+    return <AccountPage />;
+  }
+
   return <LandingPage />;
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
 };
 
 export default App;
