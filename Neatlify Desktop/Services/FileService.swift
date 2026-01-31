@@ -133,13 +133,20 @@ class FileService {
     }
 
     // Organize files according to plan
-    func organizeFiles(_ files: [FileItem], plan: OrganizationPlan, folderMap: [String: URL], progressHandler: @escaping (Int, Int) -> Void) async throws {
-        let operationID = UUID()
+    func organizeFiles(_ files: [FileItem], plan: OrganizationPlan, folderMap: [String: URL], progressHandler: @escaping @MainActor (Int, Int) -> Void) async throws {
         var movedCount = 0
+        var skippedCount = 0
 
         for file in files {
             guard let category = plan.fileAssignments[file.id],
                   let destinationFolder = folderMap[category] else {
+                continue
+            }
+
+            // IMPORTANT: Check if source file still exists before trying to move
+            guard fileManager.fileExists(atPath: file.url.path) else {
+                Logger.shared.info("Skipping already moved file: \(file.name)")
+                skippedCount += 1
                 continue
             }
 
@@ -148,13 +155,17 @@ class FileService {
             do {
                 try await moveFile(from: file.url, to: destinationURL)
                 movedCount += 1
-                progressHandler(movedCount, files.count)
+                // Call progress handler on main thread
+                await progressHandler(movedCount, files.count)
             } catch {
                 Logger.shared.error("Failed to move file: \(file.name)", error: error)
                 // Continue with other files even if one fails
             }
         }
 
+        if skippedCount > 0 {
+            Logger.shared.info("Skipped \(skippedCount) already-moved files")
+        }
         Logger.shared.info("Organization complete: \(movedCount)/\(files.count) files moved")
     }
 

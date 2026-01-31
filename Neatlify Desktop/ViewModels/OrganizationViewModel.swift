@@ -74,12 +74,22 @@ class OrganizationViewModel: ObservableObject {
         }
     }
 
+    private var isExecuting = false  // Prevent double-execution
+
     func executeOrganization() async {
+        // Prevent double-execution
+        guard !isExecuting else {
+            Logger.shared.info("Organization already in progress, ignoring duplicate call")
+            return
+        }
+
         guard let plan = organizationPlan,
               let folderURL = selectedFolderURL else {
             return
         }
 
+        isExecuting = true
+        showPreview = false  // Hide preview immediately
         currentStep = .organizingFiles
         statusMessage = "Organizing files..."
 
@@ -104,8 +114,8 @@ class OrganizationViewModel: ObservableObject {
             // Create category folders
             let folderMap = try await fileService.createFolders(plan.categories, in: organizedFolderURL)
 
-            // Move files
-            try await fileService.organizeFiles(scannedFiles, plan: plan, folderMap: folderMap) { processed, total in
+            // Move files (progress handler is @MainActor)
+            try await fileService.organizeFiles(scannedFiles, plan: plan, folderMap: folderMap) { @MainActor processed, total in
                 self.processedFiles = processed
                 self.totalFiles = total
                 self.progress = Double(processed) / Double(total)
@@ -138,11 +148,13 @@ class OrganizationViewModel: ObservableObject {
             // Complete
             currentStep = .completed
             statusMessage = "Organization complete! \(processedFiles) files organized."
+            isExecuting = false
 
             // Log usage
             APIKeyManager.logUsage(fileCount: processedFiles, tokensUsed: 0)
 
         } catch {
+            isExecuting = false
             handleError(error)
         }
     }
@@ -158,6 +170,7 @@ class OrganizationViewModel: ObservableObject {
 
     func reset() {
         isOrganizing = false
+        isExecuting = false
         currentStep = .idle
         progress = 0.0
         statusMessage = ""
