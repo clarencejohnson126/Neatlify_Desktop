@@ -374,26 +374,16 @@ class OrganizationViewModel: ObservableObject {
         let totalCount = scannedFiles.count
         let userSession = UserSession.load()
 
-        // Quick local check first
-        let (localAllowed, localReason) = userSession.canPerformCleanup(fileCount: totalCount)
-
-        if !localAllowed {
-            // Check if they need credits or need to link account
-            if localReason?.contains("credits") == true || localReason?.contains("Purchase") == true || localReason?.contains("link") == true {
-                showPaywall = true
-                isOrganizing = false
-                currentStep = .idle
-                return
-            }
-
-            errorMessage = localReason ?? "Cannot perform cleanup"
+        // Check hard cap first (local check that's always valid)
+        if totalCount > UserSession.maxFilesPerCleanup {
+            errorMessage = "Maximum \(UserSession.maxFilesPerCleanup) files per cleanup. Please select fewer files."
             showError = true
             isOrganizing = false
             currentStep = .idle
             return
         }
 
-        // If account is linked, perform server-side validation
+        // If account is linked, ALWAYS check server first (local cache may be outdated)
         if userSession.isAccountLinked {
             Task {
                 statusMessage = "Verifying credits with server..."
@@ -402,7 +392,9 @@ class OrganizationViewModel: ObservableObject {
 
                 await MainActor.run {
                     if !serverAllowed {
-                        if serverReason?.contains("credits") == true || serverReason?.contains("Insufficient") == true {
+                        if serverReason?.contains("credits") == true ||
+                           serverReason?.contains("Insufficient") == true ||
+                           serverReason?.contains("No credits") == true {
                             self.showPaywall = true
                         } else {
                             self.errorMessage = serverReason ?? "Server validation failed"
@@ -429,6 +421,21 @@ class OrganizationViewModel: ObservableObject {
             }
         } else {
             // No account linked - use local free trial validation
+            let (localAllowed, localReason) = userSession.canPerformCleanup(fileCount: totalCount)
+
+            if !localAllowed {
+                // Check if they need to link account or buy credits
+                if localReason?.contains("link") == true || localReason?.contains("credits") == true {
+                    showPaywall = true
+                } else {
+                    errorMessage = localReason ?? "Cannot perform cleanup"
+                    showError = true
+                }
+                isOrganizing = false
+                currentStep = .idle
+                return
+            }
+
             pricingInfo = PricingInfo(
                 totalFiles: totalCount,
                 creditsAvailable: userSession.fileCredits,
