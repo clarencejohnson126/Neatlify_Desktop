@@ -5,6 +5,8 @@ import LandingPage from './LandingPage';
 import SuccessPage from './SuccessPage';
 import AccountPage from './AccountPage';
 import ConstructionPage from './ConstructionPage';
+import ImpressumPage from './ImpressumPage';
+import PrivacyPage from './PrivacyPage';
 
 const AppContent: React.FC = () => {
   const [currentPath, setCurrentPath] = useState(window.location.hash);
@@ -29,6 +31,14 @@ const AppContent: React.FC = () => {
 
   if (currentPath.startsWith('#/construction')) {
     return <ConstructionPage />;
+  }
+
+  if (currentPath.startsWith('#/impressum') || currentPath.startsWith('#/terms')) {
+    return <ImpressumPage />;
+  }
+
+  if (currentPath.startsWith('#/privacy')) {
+    return <PrivacyPage />;
   }
 
   return <LandingPage />;

@@ -79,12 +79,12 @@ export const translations = {
         backDesc: "Every file move is logged. Made a mistake? One click restores everything to exactly how it was. We keep history for 30 days.",
         backList: ["Full move history", "One-click undo", "30-day retention", "Selective restore"]
       },
-      offline: {
-        title: "Works offline",
-        desc: "After initial setup, no internet required for basics.",
-        backTitle: "Work Anywhere",
-        backDesc: "Basic organization features work without internet. Smart features require connection, but your organized files are always accessible.",
-        backList: ["Offline file access", "Local organization", "Sync when online", "No subscription needed"]
+      labeling: {
+        title: "Automatic File Labeling",
+        desc: "Rename files automatically based on what's actually in them.",
+        backTitle: "Smart Renaming",
+        backDesc: "No more IMG_4523.jpg! Neatlify sees what's in your images and gives them meaningful, searchable names.",
+        backList: ["Content-based naming", "Multilingual labels", "Batch renaming", "Preserve originals"]
       }
     },
     professionals: {
@@ -294,7 +294,7 @@ export const translations = {
       privacy: "Privacy Policy",
       terms: "Terms of Service",
       support: "Support",
-      rights: "© 2025 Neatlify. All rights reserved."
+      rights: "© 2026 Neatlify. All rights reserved."
     },
     success: {
       title: "Payment Successful!",
@@ -385,12 +385,12 @@ export const translations = {
         backDesc: "Jede Dateiverschiebung wird protokolliert. Fehler gemacht? Ein Klick stellt alles wieder her. 30 Tage Verlauf.",
         backList: ["Vollständiger Verlauf", "Ein-Klick-Rückgängig", "30 Tage Aufbewahrung", "Selektive Wiederherstellung"]
       },
-      offline: {
-        title: "Funktioniert offline",
-        desc: "Grundfunktionen nach dem Setup auch ohne Internet.",
-        backTitle: "Überall arbeiten",
-        backDesc: "Basis-Organisationsfunktionen ohne Internet. Smarte Funktionen benötigen Verbindung, aber organisierte Dateien sind immer zugänglich.",
-        backList: ["Offline-Dateizugriff", "Lokale Organisation", "Sync bei Verbindung", "Kein Abo nötig"]
+      labeling: {
+        title: "Automatische Dateibeschriftung",
+        desc: "Dateien automatisch nach Inhalt umbenennen.",
+        backTitle: "Intelligente Umbenennung",
+        backDesc: "Schluss mit IMG_4523.jpg! Neatlify erkennt was in deinen Bildern ist und gibt ihnen aussagekräftige, durchsuchbare Namen.",
+        backList: ["Inhaltsbasierte Benennung", "Mehrsprachige Labels", "Stapelumbenennung", "Originale behalten"]
       }
     },
     professionals: {
@@ -600,7 +600,7 @@ export const translations = {
       privacy: "Datenschutz",
       terms: "AGB",
       support: "Support",
-      rights: "© 2025 Neatlify. Alle Rechte vorbehalten."
+      rights: "© 2026 Neatlify. Alle Rechte vorbehalten."
     },
     success: {
       title: "Zahlung erfolgreich!",

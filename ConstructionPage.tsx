@@ -19,7 +19,8 @@ import {
   QuoteIcon,
   FolderIcon,
   ChecklistIcon,
-  DocumentStackIcon
+  DocumentStackIcon,
+  MessyDeskIllustration
 } from './components/Illustrations';
 
 // Scroll animation hook
@@ -285,8 +286,11 @@ const ConstructionPage: React.FC = () => {
   return (
     <div className="min-h-screen relative overflow-x-hidden selection:bg-[#FFD93D] selection:text-[#2D3436]">
       {/* Background Decorations */}
-      <div className="absolute top-40 -left-10 opacity-10 pointer-events-none">
-        <ExcavatorIllustration className="w-48 h-auto" />
+      <div className="absolute top-[600px] -left-10 opacity-15 pointer-events-none hidden lg:block">
+        <img src="/excavator.png" alt="" className="w-40 h-auto" />
+      </div>
+      <div className="absolute top-[1400px] -right-10 opacity-15 pointer-events-none hidden lg:block">
+        <img src="/construction-worker.png" alt="" className="w-32 h-auto" />
       </div>
 
       {/* Navbar */}
@@ -365,7 +369,7 @@ const ConstructionPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center">
                   <span className="font-black text-[#FF6B6B] block uppercase tracking-widest text-xs mb-2">Before</span>
-                  <ConstructionSiteIllustration className="w-full h-auto" />
+                  <MessyDeskIllustration className="w-full h-auto" />
                 </div>
                 <div className="text-center">
                   <span className="font-black text-[#29AB87] block uppercase tracking-widest text-xs mb-2">After</span>
@@ -381,8 +385,13 @@ const ConstructionPage: React.FC = () => {
       <section className="py-24 px-6 bg-[#FAFAF8] border-y-4 border-[#2D3436]">
         <div className="max-w-4xl mx-auto">
           <AnimatedSection className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black mb-4">{content.problem.title}</h2>
-            <p className="text-xl opacity-70">{content.problem.subtitle}</p>
+            <div className="flex items-center justify-center gap-6 mb-8">
+              <img src="/construction-worker.png" alt="Construction worker" className="w-24 h-auto hidden md:block" />
+              <div>
+                <h2 className="text-4xl md:text-5xl font-black mb-4">{content.problem.title}</h2>
+                <p className="text-xl opacity-70">{content.problem.subtitle}</p>
+              </div>
+            </div>
           </AnimatedSection>
           <div className="grid sm:grid-cols-2 gap-6">
             {content.problem.items.map((item, i) => (
@@ -504,9 +513,10 @@ const ConstructionPage: React.FC = () => {
             <a href="#/" className="hover:text-[#29AB87] transition-all">{lang === 'EN' ? 'Home' : 'Startseite'}</a>
             <a href="#/#pricing" className="hover:text-[#29AB87] transition-all">{lang === 'EN' ? 'Pricing' : 'Preise'}</a>
             <a href="#/privacy" className="hover:text-[#29AB87] transition-all">{lang === 'EN' ? 'Privacy' : 'Datenschutz'}</a>
+            <a href="#/impressum" className="hover:text-[#29AB87] transition-all">Impressum</a>
           </div>
           <div className="text-sm opacity-40">
-            © 2025 Neatlify. All rights reserved.
+            © 2026 Neatlify. All rights reserved.
           </div>
         </div>
       </footer>

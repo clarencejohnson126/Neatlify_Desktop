@@ -13,7 +13,6 @@ import {
   PencilIcon,
   PrivacyIcon,
   HistoryIcon,
-  CloudOffIcon,
   BicycleIllustration,
   PlantIllustration,
   StickyNoteIllustration,
@@ -166,29 +165,13 @@ const LandingPage: React.FC = () => {
     { icon: <FolderIcon />, color: '#29AB87' },
     { icon: <PrivacyIcon />, color: '#2D3436' },
     { icon: <HistoryIcon />, color: '#FF6B6B' },
-    { icon: <CloudOffIcon />, color: '#29AB87' },
+    { icon: <TagIcon />, color: '#29AB87' },
   ];
 
-  const featureKeys = ['images', 'docs', 'categories', 'privacy', 'undo', 'offline'] as const;
+  const featureKeys = ['images', 'docs', 'categories', 'privacy', 'undo', 'labeling'] as const;
 
   return (
     <div className="min-h-screen relative overflow-x-hidden selection:bg-[#FFD93D] selection:text-[#2D3436]">
-      {/* Background Decorations */}
-      <div className="absolute top-[800px] -right-10 opacity-10 pointer-events-none wiggle">
-        <LaptopIllustration className="w-40 h-auto" />
-      </div>
-      <div className="absolute top-[1400px] left-5 opacity-10 pointer-events-none float" style={{animationDelay: '2s'}}>
-        <DocumentsIllustration className="w-32 h-auto" />
-      </div>
-      <div className="absolute top-[2200px] -right-20 opacity-10 pointer-events-none">
-        <ExcavatorIllustration className="w-56 h-auto" />
-      </div>
-      <div className="absolute top-[3000px] left-10 opacity-10 pointer-events-none wiggle">
-        <FilesImageIllustration className="w-28 h-auto" />
-      </div>
-      <div className="absolute top-[3800px] right-20 opacity-10 pointer-events-none float">
-        <PlantIllustration className="w-32 h-auto" />
-      </div>
 
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 bg-[#FAFAF8] bg-opacity-95 backdrop-blur-md z-50 border-b-4 border-[#2D3436] py-4">
@@ -241,37 +224,50 @@ const LandingPage: React.FC = () => {
       {/* Hero Section */}
       <section className="pt-44 pb-20 px-6 relative">
         <div className="max-w-6xl mx-auto">
-          <AnimatedSection className="space-y-6 relative z-10">
-            <div className="flex flex-wrap gap-3">
-              <div className="inline-block bg-[#29AB87] text-white px-4 py-1 rounded-full text-sm font-bold sketch-border cartoon-shadow">
-                {t.hero.badges.personal} ✨
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <AnimatedSection className="space-y-6 relative z-10">
+              <div className="flex flex-wrap gap-3">
+                <div className="inline-block bg-[#29AB87] text-white px-4 py-1 rounded-full text-sm font-bold sketch-border cartoon-shadow">
+                  {t.hero.badges.personal} ✨
+                </div>
+                <div className="inline-block bg-[#FF6B6B] text-white px-4 py-1 rounded-full text-sm font-bold sketch-border cartoon-shadow wiggle">
+                  {t.hero.badges.business} 🏗️
+                </div>
               </div>
-              <div className="inline-block bg-[#FF6B6B] text-white px-4 py-1 rounded-full text-sm font-bold sketch-border cartoon-shadow wiggle">
-                {t.hero.badges.business} 🏗️
+              <h1 className="text-5xl md:text-6xl font-bold leading-[0.95] text-[#2D3436]">
+                {t.hero.headline}
+              </h1>
+              <p className="text-xl text-[#2D3436] opacity-80 leading-relaxed font-medium">
+                {t.hero.subheadline}
+              </p>
+              <p className="text-base text-[#2D3436] opacity-60 font-medium border-l-4 border-[#FFD93D] pl-4">
+                {t.hero.useCases}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                <a href="/downloads/Neatlify.dmg" className="bg-[#29AB87] text-white px-8 py-4 rounded-full text-xl font-bold sketch-border cartoon-shadow-hover transition-all text-center pulse">
+                  {t.hero.cta}
+                </a>
+                <a href="#how" className="px-8 py-4 rounded-full text-xl font-bold sketch-border bg-white text-[#2D3436] cartoon-shadow-hover transition-all text-center">
+                  {t.hero.secondary}
+                </a>
               </div>
-            </div>
-            <h1 className="text-5xl md:text-7xl font-bold leading-[0.95] text-[#2D3436]">
-              {t.hero.headline}
-            </h1>
-            <p className="text-xl text-[#2D3436] opacity-80 leading-relaxed max-w-lg font-medium">
-              {t.hero.subheadline}
-            </p>
-            <p className="text-base text-[#2D3436] opacity-60 font-medium border-l-4 border-[#FFD93D] pl-4">
-              {t.hero.useCases}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 pt-2">
-              <a href="/downloads/Neatlify.dmg" className="bg-[#29AB87] text-white px-8 py-4 rounded-full text-xl font-bold sketch-border cartoon-shadow-hover transition-all text-center pulse">
-                {t.hero.cta}
-              </a>
-              <a href="#how" className="px-8 py-4 rounded-full text-xl font-bold sketch-border bg-white text-[#2D3436] cartoon-shadow-hover transition-all text-center">
-                {t.hero.secondary}
-              </a>
-            </div>
-            <div className="text-sm text-[#2D3436] opacity-60 flex items-center gap-3 font-bold">
-              <span className="bg-[#FFD93D] p-2 rounded-lg sketch-border"></span>
-              {t.hero.requirements} • {t.hero.version}
-            </div>
-          </AnimatedSection>
+              <div className="text-sm text-[#2D3436] opacity-60 flex items-center gap-3 font-bold">
+                <span className="bg-[#FFD93D] p-2 rounded-lg sketch-border"></span>
+                {t.hero.requirements} • {t.hero.version}
+              </div>
+            </AnimatedSection>
+
+            {/* Hero Image */}
+            <AnimatedSection delay={200} className="hidden lg:block">
+              <div className="sketch-border cartoon-shadow bg-white p-2 transform rotate-1 hover:rotate-0 transition-all">
+                <img
+                  src="/hero-before-after.png"
+                  alt="Before and After - Messy files transformed into organized folders with Neatlify"
+                  className="w-full h-auto"
+                />
+              </div>
+            </AnimatedSection>
+          </div>
         </div>
       </section>
 
@@ -305,6 +301,17 @@ const LandingPage: React.FC = () => {
               </AnimatedSection>
             ))}
           </div>
+
+          {/* Infographic */}
+          <AnimatedSection delay={300} className="mt-16">
+            <div className="bg-white sketch-border cartoon-shadow p-4 max-w-4xl mx-auto">
+              <img
+                src="/infographic-how-it-works.png"
+                alt="Neatlify workflow: Select folder, describe organization, content analyzed, files organized"
+                className="w-full h-auto"
+              />
+            </div>
+          </AnimatedSection>
         </div>
       </section>
 
@@ -579,11 +586,6 @@ const LandingPage: React.FC = () => {
 
       {/* Final CTA Section */}
       <section className="py-24 px-6 bg-[#2D3436] text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-10 left-10"><LaptopIllustration className="w-32" /></div>
-          <div className="absolute bottom-10 right-10"><DocumentsIllustration className="w-24" /></div>
-          <div className="absolute top-1/2 left-1/4"><FilesImageIllustration className="w-20" /></div>
-        </div>
         <div className="max-w-3xl mx-auto text-center relative z-10">
           <AnimatedSection>
             <h2 className="text-4xl md:text-6xl font-black mb-6">{t.finalCta.title}</h2>
@@ -613,8 +615,8 @@ const LandingPage: React.FC = () => {
             </div>
             <div className="flex flex-wrap justify-center gap-8 text-sm font-bold">
               <a href="#/privacy" className="hover:text-[#FF6B6B] transition-all">{t.footer.privacy}</a>
-              <a href="#/terms" className="hover:text-[#FF6B6B] transition-all">{t.footer.terms}</a>
-              <a href="#/support" className="hover:text-[#FF6B6B] transition-all">{t.footer.support}</a>
+              <a href="#/impressum" className="hover:text-[#FF6B6B] transition-all">{lang === 'EN' ? 'Impressum' : 'Impressum'}</a>
+              <a href="mailto:hello@neatlify.app" className="hover:text-[#FF6B6B] transition-all">{t.footer.support}</a>
             </div>
             <div className="flex gap-4">
               {['𝕏', 'in', 'gh'].map((social, i) => (
