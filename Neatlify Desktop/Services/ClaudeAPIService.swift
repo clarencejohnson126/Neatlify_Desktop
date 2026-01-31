@@ -113,16 +113,29 @@ class ClaudeAPIService {
             messages: [
                 ClaudeMessage(role: "user", content: [.text(message)])
             ],
-            tools: [tool]
+            tools: [tool],
+            toolChoice: ClaudeToolRequest.ToolChoice(type: "tool", name: "extract_organization_intent")
         )
 
         let response = try await makeToolRequest(request)
+
+        // Log all content for debugging
+        Logger.shared.debug("API Response content count: \(response.content.count)")
+        for (index, content) in response.content.enumerated() {
+            switch content {
+            case .text(let text):
+                Logger.shared.debug("Content[\(index)]: text = \(text)")
+            case .toolUse(let data):
+                Logger.shared.debug("Content[\(index)]: tool_use = \(data.name)")
+            }
+        }
 
         // Parse tool use from response
         guard let toolUse = response.content.first(where: {
             if case .toolUse = $0 { return true }
             return false
         }) else {
+            Logger.shared.error("No tool_use found in response. Content types: \(response.content.map { type(of: $0) })")
             throw APIError.invalidResponse
         }
 
@@ -447,6 +460,11 @@ class ClaudeAPIService {
             throw APIError.httpError(statusCode: httpResponse.statusCode)
         }
 
+        // Log raw response for debugging
+        if let responseString = String(data: data, encoding: .utf8) {
+            Logger.shared.debug("Raw API response: \(responseString.prefix(500))...")
+        }
+
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
 
@@ -483,6 +501,12 @@ class ClaudeAPIService {
         let system: String
         let messages: [ClaudeMessage]
         let tools: [IntentExtractionTool]
+        let toolChoice: ToolChoice?
+
+        struct ToolChoice: Codable {
+            let type: String
+            let name: String?
+        }
     }
 
     private struct IntentExtractionTool: Codable {
