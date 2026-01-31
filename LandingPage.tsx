@@ -275,39 +275,41 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section id="how" className="py-24 bg-white border-y-4 border-[#2D3436] relative overflow-hidden">
+      {/* How It Works Section - Dark background */}
+      <section id="how" className="py-24 bg-[#2D3436] text-white border-y-4 border-[#2D3436] relative overflow-hidden">
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <AnimatedSection className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold">{t.how.title}</h2>
           </AnimatedSection>
           <div className="grid md:grid-cols-4 gap-8 relative">
             {[
-              { icon: <FolderIcon />, ...t.how.step1, color: '#29AB87' },
-              { icon: <AiScanIcon />, ...t.how.step2, color: '#FF6B6B', hasExample: true },
-              { icon: <PencilIcon />, ...t.how.step3, color: '#FFD93D' },
-              { icon: <ChecklistIcon />, ...t.how.step4, color: '#29AB87' }
+              { icon: <FolderIcon />, ...t.how.step1, color: '#29AB87', bgCard: '#29AB87' },
+              { icon: <AiScanIcon />, ...t.how.step2, color: '#FF6B6B', bgCard: '#FF6B6B', hasExample: true },
+              { icon: <PencilIcon />, ...t.how.step3, color: '#FFD93D', bgCard: '#FFD93D' },
+              { icon: <ChecklistIcon />, ...t.how.step4, color: '#29AB87', bgCard: '#29AB87' }
             ].map((step, i) => (
               <AnimatedSection key={i} delay={i * 150} className="flex flex-col items-center text-center group">
-                <div className="w-20 h-20 sketch-border mb-4 flex items-center justify-center cartoon-shadow transition-all group-hover:scale-110 group-hover:-rotate-3" style={{backgroundColor: step.color}}>
-                  <div className="text-white scale-110">{step.icon}</div>
-                </div>
-                <div className="text-xs font-black text-[#2D3436] opacity-40 mb-2">STEP {i + 1}</div>
-                <h3 className="text-xl font-bold mb-2">{step.title}</h3>
-                <p className="text-sm text-[#2D3436] opacity-70 leading-relaxed">{step.desc}</p>
-                {step.hasExample && step.example && (
-                  <div className="mt-3 bg-[#2D3436] text-white px-4 py-2 rounded-lg text-xs font-mono italic sketch-border">
-                    {step.example}
+                <div className="sketch-border p-6 cartoon-shadow transition-all group-hover:scale-105 group-hover:-rotate-1 h-full" style={{backgroundColor: step.bgCard}}>
+                  <div className="w-16 h-16 bg-white sketch-border mb-4 flex items-center justify-center mx-auto" style={{color: step.color}}>
+                    <div className="scale-110">{step.icon}</div>
                   </div>
-                )}
+                  <div className="text-xs font-black opacity-60 mb-2">STEP {i + 1}</div>
+                  <h3 className="text-xl font-bold mb-2 text-white">{step.title}</h3>
+                  <p className="text-sm opacity-90 leading-relaxed">{step.desc}</p>
+                  {step.hasExample && step.example && (
+                    <div className="mt-3 bg-white text-[#2D3436] px-4 py-2 rounded-lg text-xs font-mono italic sketch-border">
+                      {step.example}
+                    </div>
+                  )}
+                </div>
               </AnimatedSection>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Features Grid with Flip Cards */}
-      <section id="features" className="py-24 px-6">
+      {/* Features Grid with Flip Cards - White background */}
+      <section id="features" className="py-24 px-6 bg-white">
         <div className="max-w-6xl mx-auto">
           <AnimatedSection className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold">{lang === 'EN' ? 'Features' : 'Funktionen'}</h2>
@@ -349,12 +351,12 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Use Cases Section */}
-      <section className="py-24 px-6 bg-[#FAFAF8] border-y-4 border-[#2D3436]">
+      {/* Use Cases Section - Coral/Red background */}
+      <section className="py-24 px-6 bg-[#FF6B6B] text-white border-y-4 border-[#2D3436]">
         <div className="max-w-6xl mx-auto">
           <AnimatedSection className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">{t.useCasesSection.title}</h2>
-            <p className="text-xl opacity-70">{t.useCasesSection.subtitle}</p>
+            <p className="text-xl opacity-90">{t.useCasesSection.subtitle}</p>
           </AnimatedSection>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {t.useCasesSection.cases.map((useCase, i) => {
@@ -366,11 +368,12 @@ const LandingPage: React.FC = () => {
                 book: <BookIcon />,
                 folder: <FolderIcon />
               };
-              const colors = ['#FF6B6B', '#29AB87', '#FFD93D', '#FF6B6B', '#29AB87', '#FFD93D'];
+              const cardColors = ['#FFD93D', '#29AB87', '#2D3436', '#FFD93D', '#29AB87', '#2D3436'];
+              const iconColors = ['#2D3436', '#FFFFFF', '#FFFFFF', '#2D3436', '#FFFFFF', '#FFFFFF'];
               return (
                 <AnimatedSection key={i} delay={i * 100}>
-                  <div className="bg-white sketch-border p-6 cartoon-shadow hover:-translate-y-1 transition-all h-full">
-                    <div className="w-12 h-12 sketch-border flex items-center justify-center mb-4" style={{backgroundColor: colors[i], color: 'white'}}>
+                  <div className="bg-white text-[#2D3436] sketch-border p-6 cartoon-shadow hover:-translate-y-1 transition-all h-full">
+                    <div className="w-12 h-12 sketch-border flex items-center justify-center mb-4" style={{backgroundColor: cardColors[i], color: iconColors[i]}}>
                       {icons[useCase.icon]}
                     </div>
                     <h3 className="text-xl font-bold mb-2">{useCase.title}</h3>
@@ -384,11 +387,11 @@ const LandingPage: React.FC = () => {
       </section>
 
 
-      {/* How AI Works Section */}
-      <section className="py-24 px-6 bg-white">
+      {/* How AI Works Section - White background */}
+      <section className="py-24 px-6 bg-white border-y-4 border-[#2D3436]">
         <div className="max-w-4xl mx-auto">
           <AnimatedSection className="text-center mb-16">
-            <div className="inline-block bg-[#2D3436] text-white px-4 py-1 rounded-full text-sm font-bold mb-4">
+            <div className="inline-block bg-[#29AB87] text-white px-4 py-1 rounded-full text-sm font-bold mb-4">
               {t.howAiWorks.badge}
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-4">{t.howAiWorks.title}</h2>
@@ -396,23 +399,27 @@ const LandingPage: React.FC = () => {
           </AnimatedSection>
 
           <div className="space-y-6 mb-12">
-            {t.howAiWorks.steps.map((step, i) => (
-              <AnimatedSection key={i} delay={i * 150}>
-                <div className="flex gap-6 items-start bg-[#FAFAF8] sketch-border p-6 cartoon-shadow hover:-translate-y-1 transition-all">
-                  <div className="w-12 h-12 rounded-full bg-[#29AB87] flex items-center justify-center text-white font-black text-xl flex-shrink-0 sketch-border">
-                    {i + 1}
+            {t.howAiWorks.steps.map((step, i) => {
+              const stepColors = ['#29AB87', '#FFD93D', '#FF6B6B'];
+              const textColors = ['#FFFFFF', '#2D3436', '#FFFFFF'];
+              return (
+                <AnimatedSection key={i} delay={i * 150}>
+                  <div className="flex gap-6 items-start sketch-border p-6 cartoon-shadow hover:-translate-y-1 transition-all" style={{backgroundColor: stepColors[i]}}>
+                    <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center font-black text-xl flex-shrink-0 sketch-border" style={{color: stepColors[i]}}>
+                      {i + 1}
+                    </div>
+                    <div style={{color: textColors[i]}}>
+                      <h3 className="text-xl font-bold mb-2">{step.title}</h3>
+                      <p className="opacity-90">{step.desc}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-bold mb-2">{step.title}</h3>
-                    <p className="opacity-70">{step.desc}</p>
-                  </div>
-                </div>
-              </AnimatedSection>
-            ))}
+                </AnimatedSection>
+              );
+            })}
           </div>
 
           <AnimatedSection className="text-center">
-            <div className="inline-flex items-center gap-2 bg-[#29AB87] bg-opacity-10 text-[#29AB87] px-6 py-3 rounded-full font-bold">
+            <div className="inline-flex items-center gap-2 bg-[#2D3436] text-white px-6 py-3 rounded-full font-bold sketch-border">
               <PrivacyIcon className="w-5 h-5" />
               {t.howAiWorks.privacy}
             </div>
@@ -446,8 +453,8 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-24 px-6">
+      {/* FAQ Section - Light background */}
+      <section className="py-24 px-6 bg-[#FAFAF8]">
         <div className="max-w-3xl mx-auto">
           <AnimatedSection className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold">{t.faq.title}</h2>
@@ -457,7 +464,7 @@ const LandingPage: React.FC = () => {
             {t.faq.items.map((item, i) => (
               <AnimatedSection key={i} delay={i * 50}>
                 <div
-                  className="sketch-border bg-white cartoon-shadow overflow-hidden cursor-pointer"
+                  className="sketch-border bg-white cartoon-shadow overflow-hidden cursor-pointer hover:-translate-y-1 transition-all"
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                 >
                   <div className="p-6 flex justify-between items-center">
