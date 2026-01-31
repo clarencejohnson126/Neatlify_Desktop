@@ -77,13 +77,27 @@ class ClaudeAPIService {
         Always extract:
         1. Which folder to organize (Desktop, Downloads, Documents, or a custom path)
         2. What criteria to organize by (file type, date, project, client, topic, etc.)
-        3. Suggested categories (5-8 specific, relevant categories for the criteria)
+        3. Suggested categories based on what the user wants
 
-        Be smart about categories:
-        - For "construction trade": electrician, plumber, carpenter, hvac, concrete, roofing, drywall, other
-        - For "file type": images, documents, videos, archives, code, spreadsheets, presentations, other
-        - For "client/project": extract actual client names from context or use generic Project A, Project B, etc.
-        - Always include "other" or "uncategorized" as a fallback
+        CRITICAL - Be smart about number of categories:
+
+        SINGLE FOLDER REQUEST (return ONLY 1 category, NO "other"):
+        - If user says "put all X files in a folder called Y" → return ONLY ["Y"]
+        - If user says "move these into Y" → return ONLY ["Y"]
+        - If user says "organize into Y folder" → return ONLY ["Y"]
+        - If user specifies an explicit single destination folder name, use ONLY that name
+        - Do NOT add "other" or "uncategorized" when user wants a single folder
+
+        MULTI-CATEGORY REQUEST (return 5-8 categories including "other"):
+        - If user says "organize by file type" → return ["images", "documents", "videos", "archives", "other"]
+        - If user says "sort by construction trade" → return ["electrician", "plumber", "carpenter", "hvac", "other"]
+        - If user says "categorize by client" → return ["Client A", "Client B", "other"]
+        - Only include "other" as fallback when doing multi-category organization
+
+        Examples:
+        - "Put all screenshots in Screenshots Final" → criteria: "single folder", categories: ["Screenshots Final"]
+        - "Move these photos into My Photos" → criteria: "single folder", categories: ["My Photos"]
+        - "Organize by file type" → criteria: "file type", categories: ["images", "documents", "videos", "archives", "other"]
         """
 
         let tool = IntentExtractionTool(
@@ -527,7 +541,7 @@ class ClaudeAPIService {
                 "suggested_categories": [
                     "type": "array",
                     "items": ["type": "string"],
-                    "description": "5-8 specific categories relevant to the criteria, always include 'other' or 'uncategorized'"
+                    "description": "Categories for organization. For single-folder requests (user specifies one destination like 'put in X folder'), return ONLY that single category name. For multi-category organization (sort by type, trade, etc.), return 5-8 categories including 'other' as fallback."
                 ]
             ],
             "required": ["folder", "criteria", "suggested_categories"]

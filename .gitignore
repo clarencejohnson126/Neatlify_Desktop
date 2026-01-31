@@ -25,3 +25,8 @@ dist-ssr
 # Build folders
 Neatlify Desktop/build/
 .playwright-mcp/
+
+# Xcode user data and schemes (may contain environment variables/secrets)
+*.xcuserstate
+xcuserdata/
+*.xcscheme
