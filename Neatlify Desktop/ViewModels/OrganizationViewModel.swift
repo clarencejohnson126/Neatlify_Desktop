@@ -103,16 +103,31 @@ class OrganizationViewModel: ObservableObject {
         }
 
         do {
-            // Create organized folder with timestamp
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "yyyy-MM-dd-HHmmss"
-            let timestamp = dateFormatter.string(from: Date())
+            // Determine folder structure based on number of categories
+            let folderMap: [String: URL]
 
-            let organizedFolderURL = folderURL.appendingPathComponent("Organized_\(timestamp)")
-            try FileManager.default.createDirectory(at: organizedFolderURL, withIntermediateDirectories: true)
+            if plan.categories.count == 1 {
+                // Single category: create folder directly in source folder (no timestamp wrapper)
+                let categoryName = plan.categories[0]
+                let categoryURL = folderURL.appendingPathComponent(categoryName)
+                if !FileManager.default.fileExists(atPath: categoryURL.path) {
+                    try FileManager.default.createDirectory(at: categoryURL, withIntermediateDirectories: true)
+                }
+                folderMap = [categoryName: categoryURL]
+                Logger.shared.info("Single category mode: creating '\(categoryName)' directly")
+            } else {
+                // Multiple categories: create timestamped parent folder
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "yyyy-MM-dd-HHmmss"
+                let timestamp = dateFormatter.string(from: Date())
 
-            // Create category folders
-            let folderMap = try await fileService.createFolders(plan.categories, in: organizedFolderURL)
+                let organizedFolderURL = folderURL.appendingPathComponent("Organized_\(timestamp)")
+                try FileManager.default.createDirectory(at: organizedFolderURL, withIntermediateDirectories: true)
+
+                // Create category folders inside
+                folderMap = try await fileService.createFolders(plan.categories, in: organizedFolderURL)
+                Logger.shared.info("Multi-category mode: creating \(plan.categories.count) folders in Organized_\(timestamp)")
+            }
 
             // Move files (progress handler is @MainActor)
             try await fileService.organizeFiles(scannedFiles, plan: plan, folderMap: folderMap) { @MainActor processed, total in
