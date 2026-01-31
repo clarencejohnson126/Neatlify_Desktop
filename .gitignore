@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Build folders
+Neatlify Desktop/build/
+.playwright-mcp/
