@@ -83,8 +83,14 @@ struct ContentView: View {
             queue: .main
         ) { notification in
             if let userMessage = notification.userInfo?["message"] as? String {
+                // Extract conversation history for context memory
+                let conversationHistory = notification.userInfo?["conversationHistory"] as? [ChatMessage] ?? []
+
                 Task {
-                    await organizationViewModel.startOrganization(userMessage: userMessage)
+                    await organizationViewModel.startOrganization(
+                        userMessage: userMessage,
+                        conversationHistory: conversationHistory
+                    )
                 }
             }
         }

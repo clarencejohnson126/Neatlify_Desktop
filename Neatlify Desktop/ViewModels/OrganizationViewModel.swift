@@ -30,6 +30,7 @@ class OrganizationViewModel: ObservableObject {
     private var scannedFiles: [FileItem] = []
     private var selectedFolderURL: URL?
     private var userSpecifiedFolderPath: String?
+    private var conversationHistory: [ChatMessage] = []  // For context memory within session
 
     struct PricingInfo {
         let totalFiles: Int
@@ -50,12 +51,16 @@ class OrganizationViewModel: ObservableObject {
         case completed
     }
 
-    func startOrganization(userMessage: String) async {
+    func startOrganization(userMessage: String, conversationHistory: [ChatMessage] = []) async {
         isOrganizing = true
         progress = 0.0
 
+        // Store conversation history for context
+        self.conversationHistory = conversationHistory
+        Logger.shared.info("Starting organization with \(conversationHistory.count) messages of context")
+
         do {
-            // Step 1: Parse intent
+            // Step 1: Parse intent (with conversation history for context)
             try await parseIntent(userMessage)
 
             // Step 2: Request folder access
@@ -220,7 +225,8 @@ class OrganizationViewModel: ObservableObject {
         statusMessage = "Understanding your request..."
         progress = 0.1
 
-        let intent = try await apiService.parseIntent(message)
+        // Pass conversation history to API for context memory
+        let intent = try await apiService.parseIntent(message, conversationHistory: conversationHistory)
         Logger.shared.info("Parsed intent: mode=\(intent.mode.rawValue), criteria=\(intent.criteria), folder=\(intent.folder)")
 
         // Store user-specified folder path if it looks like an absolute path

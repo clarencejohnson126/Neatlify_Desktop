@@ -66,7 +66,8 @@ class ClaudeAPIService {
     // MARK: - Agent SDK Pattern for Intent Parsing
 
     // Parse user intent using structured outputs (Agent SDK pattern)
-    func parseIntent(_ message: String) async throws -> OrganizationIntent {
+    // Accepts conversation history for context (remembers previous tasks in same session)
+    func parseIntent(_ message: String, conversationHistory: [ChatMessage] = []) async throws -> OrganizationIntent {
         let systemPrompt = """
         You are an expert file organization assistant for a macOS app called Neatlify.
 
@@ -75,6 +76,13 @@ class ClaudeAPIService {
         2. LABEL mode: Rename files based on their visual content (using AI vision)
 
         The app CAN access files on the user's Mac. You are part of the application.
+
+        IMPORTANT - CONVERSATION CONTEXT:
+        You have access to the conversation history. If the user refers to:
+        - "the same folder" or "that folder" → use the folder path from previous messages
+        - "those files" or "the same files" → they mean files from the previous task
+        - "do it again" or "same thing" → repeat the previous action type
+        - Any pronoun reference → resolve it using conversation context
 
         DETERMINE THE MODE:
 
@@ -106,6 +114,8 @@ class ClaudeAPIService {
         - "Give short fitting label names" → mode: "label", criteria: "short descriptive labels", categories: []
         - "Put all screenshots in Screenshots Final" → mode: "organize", criteria: "single folder", categories: ["Screenshots Final"]
         - "Organize by file type" → mode: "organize", criteria: "file type", categories: ["images", "documents", "videos", "other"]
+        - "Now label those same files" (after previous task) → use folder from previous task, mode: "label"
+        - "Do the same for my other folder" → same mode as before, but user will select new folder
         """
 
         let tool = IntentExtractionTool(
@@ -114,16 +124,19 @@ class ClaudeAPIService {
             inputSchema: IntentExtractionInput.schema
         )
 
+        // Build messages including conversation history for context
+        let allMessages = buildMessages(from: conversationHistory, newMessage: message)
+
         let request = ClaudeToolRequest(
             model: model,
             maxTokens: 1024,
             system: systemPrompt,
-            messages: [
-                ClaudeMessage(role: "user", content: [.text(message)])
-            ],
+            messages: allMessages,
             tools: [tool],
             toolChoice: ClaudeToolRequest.ToolChoice(type: "tool", name: "extract_organization_intent")
         )
+
+        Logger.shared.debug("ParseIntent with \(conversationHistory.count) history messages")
 
         let response = try await makeToolRequest(request)
 

@@ -79,11 +79,14 @@ class ChatViewModel: ObservableObject {
                 )
                 messages.append(startMessage)
 
-                // Notify parent view to start organization
+                // Notify parent view to start organization - include conversation history for context
                 NotificationCenter.default.post(
                     name: .startOrganization,
                     object: nil,
-                    userInfo: ["message": userMessage]
+                    userInfo: [
+                        "message": userMessage,
+                        "conversationHistory": messages  // Pass full conversation for context
+                    ]
                 )
             } else {
                 // Regular chat message
