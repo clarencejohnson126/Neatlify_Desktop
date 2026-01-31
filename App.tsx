@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import LandingPage from './LandingPage';
 import SuccessPage from './SuccessPage';
 import AccountPage from './AccountPage';
+import ConstructionPage from './ConstructionPage';
 
 const AppContent: React.FC = () => {
   const [currentPath, setCurrentPath] = useState(window.location.hash);
@@ -24,6 +25,10 @@ const AppContent: React.FC = () => {
 
   if (currentPath.startsWith('#/account')) {
     return <AccountPage />;
+  }
+
+  if (currentPath.startsWith('#/construction')) {
+    return <ConstructionPage />;
   }
 
   return <LandingPage />;

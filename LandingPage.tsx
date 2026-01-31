@@ -214,6 +214,15 @@ const LandingPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Real Estate & Construction link */}
+            <a
+              href="#/construction"
+              className="hidden md:flex items-center gap-2 sketch-border px-4 py-2 text-sm font-bold bg-[#FF6B6B] text-white cartoon-shadow-hover transition-all"
+            >
+              <HardHatIcon className="w-4 h-4" />
+              {lang === 'EN' ? 'Real Estate & Construction' : 'Immobilien & Bau'}
+            </a>
+
             <button
               onClick={toggleLang}
               className="sketch-border px-4 py-2 text-sm font-bold bg-[#FFD93D] cartoon-shadow-hover transition-all"
