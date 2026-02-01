@@ -515,6 +515,20 @@ const ConstructionPage: React.FC = () => {
             <a href="#/privacy" className="hover:text-[#29AB87] transition-all">{lang === 'EN' ? 'Privacy' : 'Datenschutz'}</a>
             <a href="#/impressum" className="hover:text-[#29AB87] transition-all">Impressum</a>
           </div>
+          <div className="flex gap-3 my-4">
+            <a href="https://www.rebelzai.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-white bg-opacity-10 rounded flex items-center justify-center overflow-hidden hover:bg-opacity-20 transition-all" title="Rebelz AI">
+              <img src="/rebelzai-logo.png" alt="Rebelz AI" className="w-6 h-6 object-contain" />
+            </a>
+            <a href="https://www.angebots-agent.de" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-white bg-opacity-10 rounded flex items-center justify-center overflow-hidden hover:bg-opacity-20 transition-all" title="Angebots-Agent">
+              <img src="/angebots-agent-logo.png" alt="Angebots-Agent" className="w-6 h-6 object-contain" />
+            </a>
+            <a href="https://www.snapplan.tech" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-white bg-opacity-10 rounded flex items-center justify-center overflow-hidden hover:bg-opacity-20 transition-all" title="SnapPlan">
+              <img src="/snapplan-logo.png" alt="SnapPlan" className="w-6 h-6 object-contain" />
+            </a>
+            <a href="https://www.ki-bauunternehmer.de" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-white bg-opacity-10 rounded flex items-center justify-center overflow-hidden hover:bg-opacity-20 transition-all" title="KI-Bauunternehmer">
+              <img src="/ki-bauunternehmer-logo.png" alt="KI-Bauunternehmer" className="w-6 h-6 object-contain" />
+            </a>
+          </div>
           <div className="text-sm opacity-40">
             © 2026 Neatlify. All rights reserved.
           </div>

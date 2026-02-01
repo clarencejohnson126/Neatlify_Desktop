@@ -633,12 +633,19 @@ const LandingPage: React.FC = () => {
               <a href="#/impressum" className="hover:text-[#FF6B6B] transition-all">{lang === 'EN' ? 'Impressum' : 'Impressum'}</a>
               <a href="mailto:hello@neatlify.app" className="hover:text-[#FF6B6B] transition-all">{t.footer.support}</a>
             </div>
-            <div className="flex gap-4">
-              {['𝕏', 'in', 'gh'].map((social, i) => (
-                <a key={i} href="#" className="w-10 h-10 sketch-border bg-white bg-opacity-10 flex items-center justify-center font-black cursor-pointer hover:bg-[#FFD93D] hover:text-[#2D3436] transition-all">
-                  {social}
-                </a>
-              ))}
+            <div className="flex gap-3">
+              <a href="https://www.rebelzai.com" target="_blank" rel="noopener noreferrer" className="w-10 h-10 sketch-border bg-white bg-opacity-10 flex items-center justify-center overflow-hidden cursor-pointer hover:bg-white hover:bg-opacity-20 transition-all" title="Rebelz AI">
+                <img src="/rebelzai-logo.png" alt="Rebelz AI" className="w-8 h-8 object-contain" />
+              </a>
+              <a href="https://www.angebots-agent.de" target="_blank" rel="noopener noreferrer" className="w-10 h-10 sketch-border bg-white bg-opacity-10 flex items-center justify-center overflow-hidden cursor-pointer hover:bg-white hover:bg-opacity-20 transition-all" title="Angebots-Agent">
+                <img src="/angebots-agent-logo.png" alt="Angebots-Agent" className="w-8 h-8 object-contain" />
+              </a>
+              <a href="https://www.snapplan.tech" target="_blank" rel="noopener noreferrer" className="w-10 h-10 sketch-border bg-white bg-opacity-10 flex items-center justify-center overflow-hidden cursor-pointer hover:bg-white hover:bg-opacity-20 transition-all" title="SnapPlan">
+                <img src="/snapplan-logo.png" alt="SnapPlan" className="w-8 h-8 object-contain" />
+              </a>
+              <a href="https://www.ki-bauunternehmer.de" target="_blank" rel="noopener noreferrer" className="w-10 h-10 sketch-border bg-white bg-opacity-10 flex items-center justify-center overflow-hidden cursor-pointer hover:bg-white hover:bg-opacity-20 transition-all" title="KI-Bauunternehmer">
+                <img src="/ki-bauunternehmer-logo.png" alt="KI-Bauunternehmer" className="w-8 h-8 object-contain" />
+              </a>
             </div>
           </div>
           <div className="pt-8 border-t border-white border-opacity-10 text-center text-sm opacity-40">
