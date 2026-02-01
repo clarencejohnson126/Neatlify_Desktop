@@ -107,6 +107,7 @@ const LandingPage: React.FC = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
+  const [infographicOpen, setInfographicOpen] = useState(false);
 
   const { user, loading: authLoading } = useAuth();
   const t = translations[lang];
@@ -304,12 +305,20 @@ const LandingPage: React.FC = () => {
 
           {/* Infographic */}
           <AnimatedSection delay={300} className="mt-16">
-            <div className="bg-white sketch-border cartoon-shadow p-4 max-w-4xl mx-auto">
+            <div
+              className="bg-white sketch-border cartoon-shadow p-4 max-w-4xl mx-auto cursor-pointer hover:scale-[1.02] transition-all relative group"
+              onClick={() => setInfographicOpen(true)}
+            >
               <img
                 src="/infographic-how-it-works.png"
                 alt="Neatlify workflow: Select folder, describe organization, content analyzed, files organized"
                 className="w-full h-auto"
               />
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-center justify-center">
+                <span className="opacity-0 group-hover:opacity-100 bg-white text-[#2D3436] px-4 py-2 rounded-full font-bold text-sm sketch-border transition-all">
+                  {lang === 'EN' ? 'Click to enlarge' : 'Klicken zum Vergrößern'}
+                </span>
+              </div>
             </div>
           </AnimatedSection>
         </div>
@@ -638,6 +647,30 @@ const LandingPage: React.FC = () => {
         onClose={() => setAuthModalOpen(false)}
         initialMode={authModalMode}
       />
+
+      {/* Infographic Lightbox */}
+      {infographicOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8"
+          onClick={() => setInfographicOpen(false)}
+        >
+          <div className="absolute inset-0 bg-[#2D3436] bg-opacity-90 backdrop-blur-sm" />
+          <div className="relative max-w-7xl w-full max-h-[90vh] overflow-auto">
+            <button
+              onClick={() => setInfographicOpen(false)}
+              className="absolute -top-12 right-0 text-white text-xl font-bold hover:text-[#FF6B6B] transition-colors flex items-center gap-2"
+            >
+              {lang === 'EN' ? 'Close' : 'Schließen'} ✕
+            </button>
+            <img
+              src="/infographic-how-it-works.png"
+              alt="Neatlify workflow infographic"
+              className="w-full h-auto rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
