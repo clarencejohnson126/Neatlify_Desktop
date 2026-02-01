@@ -92,6 +92,20 @@ export const translations = {
         backTitle: "Analyze Exported Emails",
         backDesc: "Save your emails as files (.eml, .pdf, .msg) to a folder, and Neatlify will read, categorize, and organize them by sender, topic, or date.",
         backList: ["Sort by sender/topic", "Extract attachments", "Date-based folders", "Project grouping"]
+      },
+      multilingual: {
+        title: "Multilingual Support",
+        desc: "Labels and folder names in 7 languages including English and German.",
+        backTitle: "Global Language Support",
+        backDesc: "Neatlify generates file labels and folder names in your preferred language. Perfect for international teams and multilingual workflows.",
+        backList: ["English & German", "Spanish & French", "Italian & Portuguese", "Dutch supported"]
+      },
+      natural: {
+        title: "Natural Language",
+        desc: "Just tell Neatlify what you want — in plain English or German.",
+        backTitle: "Speak Naturally",
+        backDesc: "No complicated settings. Simply describe how you want files organized: 'Sort my photos by date and location' or 'Group invoices by vendor'.",
+        backList: ["Plain English commands", "German supported", "No technical jargon", "Flexible instructions"]
       }
     },
     professionals: {
@@ -405,6 +419,20 @@ export const translations = {
         backTitle: "Exportierte E-Mails analysieren",
         backDesc: "Speichere deine E-Mails als Dateien (.eml, .pdf, .msg) in einem Ordner, und Neatlify liest, kategorisiert und organisiert sie nach Absender, Thema oder Datum.",
         backList: ["Nach Absender/Thema sortieren", "Anhänge extrahieren", "Datumsbasierte Ordner", "Projektgruppierung"]
+      },
+      multilingual: {
+        title: "Mehrsprachig",
+        desc: "Labels und Ordnernamen in 7 Sprachen inklusive Deutsch und Englisch.",
+        backTitle: "Globale Sprachunterstützung",
+        backDesc: "Neatlify generiert Dateilabels und Ordnernamen in deiner bevorzugten Sprache. Perfekt für internationale Teams und mehrsprachige Workflows.",
+        backList: ["Deutsch & Englisch", "Spanisch & Französisch", "Italienisch & Portugiesisch", "Niederländisch"]
+      },
+      natural: {
+        title: "Natürliche Sprache",
+        desc: "Sag Neatlify einfach was du willst — auf Deutsch oder Englisch.",
+        backTitle: "Sprich natürlich",
+        backDesc: "Keine komplizierten Einstellungen. Beschreibe einfach, wie du Dateien organisiert haben möchtest: 'Sortiere meine Fotos nach Datum und Ort' oder 'Gruppiere Rechnungen nach Lieferant'.",
+        backList: ["Einfache Befehle", "Deutsch unterstützt", "Kein Fachjargon", "Flexible Anweisungen"]
       }
     },
     professionals: {
