@@ -33,7 +33,8 @@ import {
   FilesImageIllustration,
   BookIcon,
   TradesIcon,
-  QuoteIcon
+  QuoteIcon,
+  MailIcon
 } from './components/Illustrations';
 
 // Scroll animation hook
@@ -167,9 +168,10 @@ const LandingPage: React.FC = () => {
     { icon: <PrivacyIcon />, color: '#2D3436' },
     { icon: <HistoryIcon />, color: '#FF6B6B' },
     { icon: <TagIcon />, color: '#29AB87' },
+    { icon: <MailIcon />, color: '#FF6B6B' },
   ];
 
-  const featureKeys = ['images', 'docs', 'categories', 'privacy', 'undo', 'labeling'] as const;
+  const featureKeys = ['images', 'docs', 'categories', 'privacy', 'undo', 'labeling', 'emails'] as const;
 
   return (
     <div className="min-h-screen relative overflow-x-hidden selection:bg-[#FFD93D] selection:text-[#2D3436]">

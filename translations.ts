@@ -85,6 +85,13 @@ export const translations = {
         backTitle: "Smart Renaming",
         backDesc: "No more IMG_4523.jpg! Neatlify sees what's in your images and gives them meaningful, searchable names.",
         backList: ["Content-based naming", "Multilingual labels", "Batch renaming", "Preserve originals"]
+      },
+      emails: {
+        title: "Email Organization",
+        desc: "Export emails to a folder and let Neatlify sort them intelligently.",
+        backTitle: "Analyze Exported Emails",
+        backDesc: "Save your emails as files (.eml, .pdf, .msg) to a folder, and Neatlify will read, categorize, and organize them by sender, topic, or date.",
+        backList: ["Sort by sender/topic", "Extract attachments", "Date-based folders", "Project grouping"]
       }
     },
     professionals: {
@@ -391,6 +398,13 @@ export const translations = {
         backTitle: "Intelligente Umbenennung",
         backDesc: "Schluss mit IMG_4523.jpg! Neatlify erkennt was in deinen Bildern ist und gibt ihnen aussagekräftige, durchsuchbare Namen.",
         backList: ["Inhaltsbasierte Benennung", "Mehrsprachige Labels", "Stapelumbenennung", "Originale behalten"]
+      },
+      emails: {
+        title: "E-Mail-Organisation",
+        desc: "Exportiere E-Mails in einen Ordner und lass Neatlify sie sortieren.",
+        backTitle: "Exportierte E-Mails analysieren",
+        backDesc: "Speichere deine E-Mails als Dateien (.eml, .pdf, .msg) in einem Ordner, und Neatlify liest, kategorisiert und organisiert sie nach Absender, Thema oder Datum.",
+        backList: ["Nach Absender/Thema sortieren", "Anhänge extrahieren", "Datumsbasierte Ordner", "Projektgruppierung"]
       }
     },
     professionals: {
