@@ -13,7 +13,6 @@ import {
   PencilIcon,
   PrivacyIcon,
   HistoryIcon,
-  CloudOffIcon,
   BicycleIllustration,
   PlantIllustration,
   StickyNoteIllustration,
@@ -34,7 +33,10 @@ import {
   FilesImageIllustration,
   BookIcon,
   TradesIcon,
-  QuoteIcon
+  QuoteIcon,
+  MailIcon,
+  GlobeIcon,
+  ChatIcon
 } from './components/Illustrations';
 
 // Scroll animation hook
@@ -108,6 +110,7 @@ const LandingPage: React.FC = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
+  const [infographicOpen, setInfographicOpen] = useState(false);
 
   const { user, loading: authLoading } = useAuth();
   const t = translations[lang];
@@ -166,29 +169,16 @@ const LandingPage: React.FC = () => {
     { icon: <FolderIcon />, color: '#29AB87' },
     { icon: <PrivacyIcon />, color: '#2D3436' },
     { icon: <HistoryIcon />, color: '#FF6B6B' },
-    { icon: <CloudOffIcon />, color: '#29AB87' },
+    { icon: <TagIcon />, color: '#29AB87' },
+    { icon: <MailIcon />, color: '#FF6B6B' },
+    { icon: <GlobeIcon />, color: '#29AB87' },
+    { icon: <ChatIcon />, color: '#FFD93D' },
   ];
 
-  const featureKeys = ['images', 'docs', 'categories', 'privacy', 'undo', 'offline'] as const;
+  const featureKeys = ['images', 'docs', 'categories', 'privacy', 'undo', 'labeling', 'emails', 'multilingual', 'natural'] as const;
 
   return (
     <div className="min-h-screen relative overflow-x-hidden selection:bg-[#FFD93D] selection:text-[#2D3436]">
-      {/* Background Decorations */}
-      <div className="absolute top-[800px] -right-10 opacity-10 pointer-events-none wiggle">
-        <LaptopIllustration className="w-40 h-auto" />
-      </div>
-      <div className="absolute top-[1400px] left-5 opacity-10 pointer-events-none float" style={{animationDelay: '2s'}}>
-        <DocumentsIllustration className="w-32 h-auto" />
-      </div>
-      <div className="absolute top-[2200px] -right-20 opacity-10 pointer-events-none">
-        <ExcavatorIllustration className="w-56 h-auto" />
-      </div>
-      <div className="absolute top-[3000px] left-10 opacity-10 pointer-events-none wiggle">
-        <FilesImageIllustration className="w-28 h-auto" />
-      </div>
-      <div className="absolute top-[3800px] right-20 opacity-10 pointer-events-none float">
-        <PlantIllustration className="w-32 h-auto" />
-      </div>
 
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 bg-[#FAFAF8] bg-opacity-95 backdrop-blur-md z-50 border-b-4 border-[#2D3436] py-4">
@@ -203,11 +193,19 @@ const LandingPage: React.FC = () => {
           <div className="hidden md:flex items-center gap-6 font-bold text-sm">
             <a href="#features" className="hover:text-[#29AB87] transition-all">{t.nav.features}</a>
             <a href="#how" className="hover:text-[#29AB87] transition-all">{t.nav.howItWorks}</a>
-            <a href="#professionals" className="hover:text-[#29AB87] transition-all">{t.nav.professionals}</a>
             <a href="#pricing" className="hover:text-[#29AB87] transition-all">{t.nav.pricing}</a>
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Real Estate & Construction link */}
+            <a
+              href="#/construction"
+              className="hidden md:flex items-center gap-2 sketch-border px-4 py-2 text-sm font-bold bg-[#FF6B6B] text-white cartoon-shadow-hover transition-all"
+            >
+              <HardHatIcon className="w-4 h-4" />
+              {lang === 'EN' ? 'Real Estate & Construction' : 'Immobilien & Bau'}
+            </a>
+
             <button
               onClick={toggleLang}
               className="sketch-border px-4 py-2 text-sm font-bold bg-[#FFD93D] cartoon-shadow-hover transition-all"
@@ -233,73 +231,107 @@ const LandingPage: React.FC = () => {
       {/* Hero Section */}
       <section className="pt-44 pb-20 px-6 relative">
         <div className="max-w-6xl mx-auto">
-          <AnimatedSection className="space-y-6 relative z-10">
-            <div className="flex flex-wrap gap-3">
-              <div className="inline-block bg-[#29AB87] text-white px-4 py-1 rounded-full text-sm font-bold sketch-border cartoon-shadow">
-                {t.hero.badges.personal} ✨
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <AnimatedSection className="space-y-6 relative z-10">
+              <div className="flex flex-wrap gap-3">
+                <div className="inline-block bg-[#29AB87] text-white px-4 py-1 rounded-full text-sm font-bold sketch-border cartoon-shadow">
+                  {t.hero.badges.personal} ✨
+                </div>
+                <div className="inline-block bg-[#FF6B6B] text-white px-4 py-1 rounded-full text-sm font-bold sketch-border cartoon-shadow wiggle">
+                  {t.hero.badges.business} 🏗️
+                </div>
               </div>
-              <div className="inline-block bg-[#FF6B6B] text-white px-4 py-1 rounded-full text-sm font-bold sketch-border cartoon-shadow wiggle">
-                {t.hero.badges.business} 🏗️
+              <h1 className="text-5xl md:text-6xl font-bold leading-[0.95] text-[#2D3436]">
+                {t.hero.headline}
+              </h1>
+              <p className="text-xl text-[#2D3436] opacity-80 leading-relaxed font-medium">
+                {t.hero.subheadline}
+              </p>
+              <p className="text-base text-[#2D3436] opacity-60 font-medium border-l-4 border-[#FFD93D] pl-4">
+                {t.hero.useCases}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                <a href="/downloads/Neatlify.dmg" className="bg-[#29AB87] text-white px-8 py-4 rounded-full text-xl font-bold sketch-border cartoon-shadow-hover transition-all text-center pulse">
+                  {t.hero.cta}
+                </a>
+                <a href="#how" className="px-8 py-4 rounded-full text-xl font-bold sketch-border bg-white text-[#2D3436] cartoon-shadow-hover transition-all text-center">
+                  {t.hero.secondary}
+                </a>
               </div>
-            </div>
-            <h1 className="text-5xl md:text-7xl font-bold leading-[0.95] text-[#2D3436]">
-              {t.hero.headline}
-            </h1>
-            <p className="text-xl text-[#2D3436] opacity-80 leading-relaxed max-w-lg font-medium">
-              {t.hero.subheadline}
-            </p>
-            <p className="text-base text-[#2D3436] opacity-60 font-medium border-l-4 border-[#FFD93D] pl-4">
-              {t.hero.useCases}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 pt-2">
-              <a href="/downloads/Neatlify.dmg" className="bg-[#29AB87] text-white px-8 py-4 rounded-full text-xl font-bold sketch-border cartoon-shadow-hover transition-all text-center pulse">
-                {t.hero.cta}
-              </a>
-              <a href="#how" className="px-8 py-4 rounded-full text-xl font-bold sketch-border bg-white text-[#2D3436] cartoon-shadow-hover transition-all text-center">
-                {t.hero.secondary}
-              </a>
-            </div>
-            <div className="text-sm text-[#2D3436] opacity-60 flex items-center gap-3 font-bold">
-              <span className="bg-[#FFD93D] p-2 rounded-lg sketch-border"></span>
-              {t.hero.requirements} • {t.hero.version}
-            </div>
-          </AnimatedSection>
+              <div className="text-sm text-[#2D3436] opacity-60 flex items-center gap-3 font-bold">
+                <span className="bg-[#FFD93D] p-2 rounded-lg sketch-border"></span>
+                {t.hero.requirements} • {t.hero.version}
+              </div>
+            </AnimatedSection>
+
+            {/* Hero Image */}
+            <AnimatedSection delay={200} className="hidden lg:block">
+              <div className="sketch-border cartoon-shadow bg-white p-2 transform rotate-1 hover:rotate-0 transition-all">
+                <img
+                  src="/hero-before-after.png"
+                  alt="Before and After - Messy files transformed into organized folders with Neatlify"
+                  className="w-full h-auto"
+                />
+              </div>
+            </AnimatedSection>
+          </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section id="how" className="py-24 bg-white border-y-4 border-[#2D3436] relative overflow-hidden">
+      {/* How It Works Section - Dark background */}
+      <section id="how" className="py-24 bg-[#2D3436] text-white border-y-4 border-[#2D3436] relative overflow-hidden">
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <AnimatedSection className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold">{t.how.title}</h2>
           </AnimatedSection>
           <div className="grid md:grid-cols-4 gap-8 relative">
             {[
-              { icon: <FolderIcon />, ...t.how.step1, color: '#29AB87' },
-              { icon: <AiScanIcon />, ...t.how.step2, color: '#FF6B6B', hasExample: true },
-              { icon: <PencilIcon />, ...t.how.step3, color: '#FFD93D' },
-              { icon: <ChecklistIcon />, ...t.how.step4, color: '#29AB87' }
+              { icon: <FolderIcon />, ...t.how.step1, color: '#29AB87', bgCard: '#29AB87' },
+              { icon: <AiScanIcon />, ...t.how.step2, color: '#FF6B6B', bgCard: '#FF6B6B', hasExample: true },
+              { icon: <PencilIcon />, ...t.how.step3, color: '#FFD93D', bgCard: '#FFD93D' },
+              { icon: <ChecklistIcon />, ...t.how.step4, color: '#29AB87', bgCard: '#29AB87' }
             ].map((step, i) => (
               <AnimatedSection key={i} delay={i * 150} className="flex flex-col items-center text-center group">
-                <div className="w-20 h-20 sketch-border mb-4 flex items-center justify-center cartoon-shadow transition-all group-hover:scale-110 group-hover:-rotate-3" style={{backgroundColor: step.color}}>
-                  <div className="text-white scale-110">{step.icon}</div>
-                </div>
-                <div className="text-xs font-black text-[#2D3436] opacity-40 mb-2">STEP {i + 1}</div>
-                <h3 className="text-xl font-bold mb-2">{step.title}</h3>
-                <p className="text-sm text-[#2D3436] opacity-70 leading-relaxed">{step.desc}</p>
-                {step.hasExample && step.example && (
-                  <div className="mt-3 bg-[#2D3436] text-white px-4 py-2 rounded-lg text-xs font-mono italic sketch-border">
-                    {step.example}
+                <div className="sketch-border p-6 cartoon-shadow transition-all group-hover:scale-105 group-hover:-rotate-1 h-full" style={{backgroundColor: step.bgCard}}>
+                  <div className="w-16 h-16 bg-white sketch-border mb-4 flex items-center justify-center mx-auto" style={{color: step.color}}>
+                    <div className="scale-110">{step.icon}</div>
                   </div>
-                )}
+                  <div className="text-xs font-black opacity-60 mb-2">STEP {i + 1}</div>
+                  <h3 className="text-xl font-bold mb-2 text-white">{step.title}</h3>
+                  <p className="text-sm opacity-90 leading-relaxed">{step.desc}</p>
+                  {step.hasExample && step.example && (
+                    <div className="mt-3 bg-white text-[#2D3436] px-4 py-2 rounded-lg text-xs font-mono italic sketch-border">
+                      {step.example}
+                    </div>
+                  )}
+                </div>
               </AnimatedSection>
             ))}
           </div>
+
+          {/* Infographic */}
+          <AnimatedSection delay={300} className="mt-16">
+            <div
+              className="bg-white sketch-border cartoon-shadow p-4 max-w-4xl mx-auto cursor-pointer hover:scale-[1.02] transition-all relative group"
+              onClick={() => setInfographicOpen(true)}
+            >
+              <img
+                src="/infographic-how-it-works.png"
+                alt="Neatlify workflow: Select folder, describe organization, content analyzed, files organized"
+                className="w-full h-auto"
+              />
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-center justify-center">
+                <span className="opacity-0 group-hover:opacity-100 bg-white text-[#2D3436] px-4 py-2 rounded-full font-bold text-sm sketch-border transition-all">
+                  {lang === 'EN' ? 'Click to enlarge' : 'Klicken zum Vergrößern'}
+                </span>
+              </div>
+            </div>
+          </AnimatedSection>
         </div>
       </section>
 
-      {/* Features Grid with Flip Cards */}
-      <section id="features" className="py-24 px-6">
+      {/* Features Grid with Flip Cards - White background */}
+      <section id="features" className="py-24 px-6 bg-white">
         <div className="max-w-6xl mx-auto">
           <AnimatedSection className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold">{lang === 'EN' ? 'Features' : 'Funktionen'}</h2>
@@ -341,12 +373,12 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Use Cases Section */}
-      <section className="py-24 px-6 bg-[#FAFAF8] border-y-4 border-[#2D3436]">
+      {/* Use Cases Section - Coral/Red background */}
+      <section className="py-24 px-6 bg-[#FF6B6B] text-white border-y-4 border-[#2D3436]">
         <div className="max-w-6xl mx-auto">
           <AnimatedSection className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">{t.useCasesSection.title}</h2>
-            <p className="text-xl opacity-70">{t.useCasesSection.subtitle}</p>
+            <p className="text-xl opacity-90">{t.useCasesSection.subtitle}</p>
           </AnimatedSection>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {t.useCasesSection.cases.map((useCase, i) => {
@@ -358,11 +390,12 @@ const LandingPage: React.FC = () => {
                 book: <BookIcon />,
                 folder: <FolderIcon />
               };
-              const colors = ['#FF6B6B', '#29AB87', '#FFD93D', '#FF6B6B', '#29AB87', '#FFD93D'];
+              const cardColors = ['#FFD93D', '#29AB87', '#2D3436', '#FFD93D', '#29AB87', '#2D3436'];
+              const iconColors = ['#2D3436', '#FFFFFF', '#FFFFFF', '#2D3436', '#FFFFFF', '#FFFFFF'];
               return (
                 <AnimatedSection key={i} delay={i * 100}>
-                  <div className="bg-white sketch-border p-6 cartoon-shadow hover:-translate-y-1 transition-all h-full">
-                    <div className="w-12 h-12 sketch-border flex items-center justify-center mb-4" style={{backgroundColor: colors[i], color: 'white'}}>
+                  <div className="bg-white text-[#2D3436] sketch-border p-6 cartoon-shadow hover:-translate-y-1 transition-all h-full">
+                    <div className="w-12 h-12 sketch-border flex items-center justify-center mb-4" style={{backgroundColor: cardColors[i], color: iconColors[i]}}>
                       {icons[useCase.icon]}
                     </div>
                     <h3 className="text-xl font-bold mb-2">{useCase.title}</h3>
@@ -375,123 +408,12 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Professionals Section */}
-      <section id="professionals" className="py-24 px-6 bg-[#2D3436] text-white relative overflow-hidden">
-        <div className="absolute top-10 right-10 opacity-10">
-          <ConstructionWorkerIllustration className="w-40 h-auto" />
-        </div>
-        <div className="absolute bottom-20 left-10 opacity-10">
-          <ExcavatorIllustration className="w-48 h-auto" />
-        </div>
 
-        <div className="max-w-6xl mx-auto relative z-10">
-          <AnimatedSection className="text-center mb-16">
-            <div className="inline-flex items-center gap-3 bg-[#FF6B6B] text-white px-6 py-2 rounded-full text-sm font-black sketch-border cartoon-shadow mb-6">
-              <HardHatIcon className="w-5 h-5" />
-              <span>PRO FEATURES</span>
-            </div>
-            <h2 className="text-4xl md:text-5xl font-black mb-4">{t.professionals.title}</h2>
-            <p className="text-xl opacity-80 max-w-2xl mx-auto">{t.professionals.subtitle}</p>
-          </AnimatedSection>
-
-          {/* Before/After */}
-          <div className="grid md:grid-cols-2 gap-6 mb-16">
-            <AnimatedSection>
-              <div className="sketch-border bg-white bg-opacity-5 p-4 relative">
-                <div className="absolute -top-3 left-4 bg-[#FF6B6B] text-white px-3 py-1 rounded-full text-xs font-black sketch-border">BEFORE</div>
-                <ConstructionSiteIllustration className="w-full h-auto" />
-              </div>
-            </AnimatedSection>
-            <AnimatedSection delay={200}>
-              <div className="sketch-border bg-white bg-opacity-10 p-4 relative">
-                <div className="absolute -top-3 left-4 bg-[#29AB87] text-white px-3 py-1 rounded-full text-xs font-black sketch-border">AFTER</div>
-                <OrganizedFilesIllustration className="w-full h-auto" />
-              </div>
-            </AnimatedSection>
-          </div>
-
-          {/* Use Cases with Flip Cards */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-16">
-            {[
-              { icon: <CameraIcon />, ...t.professionals.useCases[0], color: '#29AB87' },
-              { icon: <TagIcon />, ...t.professionals.useCases[1], color: '#FFD93D' },
-              { icon: <BlueprintIcon />, ...t.professionals.useCases[2], color: '#FF6B6B' },
-              { icon: <BuildingIcon />, ...t.professionals.useCases[3], color: '#29AB87' },
-            ].map((useCase, i) => (
-              <AnimatedSection key={i} delay={i * 100}>
-                <FlipCard
-                  className="h-[260px]"
-                  front={
-                    <div className="h-full flex flex-col card-content text-[#2D3436]">
-                      <div className="w-10 h-10 sketch-border flex items-center justify-center mb-3 flex-shrink-0" style={{backgroundColor: useCase.color}}>
-                        <div className="text-white scale-75">{useCase.icon}</div>
-                      </div>
-                      <div className="text-[10px] font-black uppercase tracking-wider opacity-60 mb-1">{useCase.tag}</div>
-                      <h3 className="text-base font-bold mb-2">{useCase.title}</h3>
-                      <p className="text-xs opacity-70 leading-relaxed">{useCase.desc}</p>
-                    </div>
-                  }
-                  back={
-                    <div className="h-full flex flex-col card-content">
-                      <h3 className="text-sm font-bold mb-2 text-[#FFD93D]">{useCase.backTitle}</h3>
-                      <p className="text-[11px] opacity-80 mb-2 leading-relaxed">{useCase.backDesc}</p>
-                      <ul className="text-[10px] space-y-1 mt-auto">
-                        {useCase.backList.map((item: string, j: number) => (
-                          <li key={j} className="flex items-center gap-1">
-                            <span className="text-[#29AB87]">✓</span> {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  }
-                />
-              </AnimatedSection>
-            ))}
-          </div>
-
-          {/* Trades/Gewerke Section */}
-          <AnimatedSection>
-            <div className="bg-white bg-opacity-5 sketch-border p-6 mb-12">
-              <div className="flex items-center gap-3 mb-4">
-                <TradesIcon className="w-8 h-8 text-[#FFD93D]" />
-                <h3 className="text-2xl font-bold">{t.professionals.trades.title}</h3>
-              </div>
-              <p className="opacity-70 mb-6">{t.professionals.trades.subtitle}</p>
-              <div className="flex flex-wrap gap-3">
-                {t.professionals.trades.list.map((trade, i) => (
-                  <span key={i} className="bg-white bg-opacity-10 px-4 py-2 rounded-full text-sm font-bold sketch-border hover:bg-[#29AB87] transition-all cursor-default">
-                    {trade}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </AnimatedSection>
-
-          {/* Stats */}
-          <div className="flex flex-wrap justify-center gap-12 mb-10">
-            <AnimatedSection className="text-center">
-              <div className="text-4xl md:text-5xl font-black text-[#FFD93D]">{t.professionals.stats.time}</div>
-              <div className="text-sm opacity-60 uppercase tracking-wider font-bold">{t.professionals.stats.timeLabel}</div>
-            </AnimatedSection>
-            <AnimatedSection delay={200} className="text-center">
-              <div className="text-4xl md:text-5xl font-black text-[#29AB87]">{t.professionals.stats.files}</div>
-              <div className="text-sm opacity-60 uppercase tracking-wider font-bold">{t.professionals.stats.filesLabel}</div>
-            </AnimatedSection>
-          </div>
-
-          <AnimatedSection className="text-center">
-            <a href="#pricing" className="inline-block bg-[#FFD93D] text-[#2D3436] px-10 py-4 rounded-full text-xl font-black sketch-border cartoon-shadow-hover transition-all">
-              {t.professionals.cta}
-            </a>
-          </AnimatedSection>
-        </div>
-      </section>
-
-      {/* How AI Works Section */}
-      <section className="py-24 px-6 bg-white">
+      {/* How AI Works Section - White background */}
+      <section className="py-24 px-6 bg-white border-y-4 border-[#2D3436]">
         <div className="max-w-4xl mx-auto">
           <AnimatedSection className="text-center mb-16">
-            <div className="inline-block bg-[#2D3436] text-white px-4 py-1 rounded-full text-sm font-bold mb-4">
+            <div className="inline-block bg-[#29AB87] text-white px-4 py-1 rounded-full text-sm font-bold mb-4">
               {t.howAiWorks.badge}
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-4">{t.howAiWorks.title}</h2>
@@ -499,23 +421,27 @@ const LandingPage: React.FC = () => {
           </AnimatedSection>
 
           <div className="space-y-6 mb-12">
-            {t.howAiWorks.steps.map((step, i) => (
-              <AnimatedSection key={i} delay={i * 150}>
-                <div className="flex gap-6 items-start bg-[#FAFAF8] sketch-border p-6 cartoon-shadow hover:-translate-y-1 transition-all">
-                  <div className="w-12 h-12 rounded-full bg-[#29AB87] flex items-center justify-center text-white font-black text-xl flex-shrink-0 sketch-border">
-                    {i + 1}
+            {t.howAiWorks.steps.map((step, i) => {
+              const stepColors = ['#29AB87', '#FFD93D', '#FF6B6B'];
+              const textColors = ['#FFFFFF', '#2D3436', '#FFFFFF'];
+              return (
+                <AnimatedSection key={i} delay={i * 150}>
+                  <div className="flex gap-6 items-start sketch-border p-6 cartoon-shadow hover:-translate-y-1 transition-all" style={{backgroundColor: stepColors[i]}}>
+                    <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center font-black text-xl flex-shrink-0 sketch-border" style={{color: stepColors[i]}}>
+                      {i + 1}
+                    </div>
+                    <div style={{color: textColors[i]}}>
+                      <h3 className="text-xl font-bold mb-2">{step.title}</h3>
+                      <p className="opacity-90">{step.desc}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-bold mb-2">{step.title}</h3>
-                    <p className="opacity-70">{step.desc}</p>
-                  </div>
-                </div>
-              </AnimatedSection>
-            ))}
+                </AnimatedSection>
+              );
+            })}
           </div>
 
           <AnimatedSection className="text-center">
-            <div className="inline-flex items-center gap-2 bg-[#29AB87] bg-opacity-10 text-[#29AB87] px-6 py-3 rounded-full font-bold">
+            <div className="inline-flex items-center gap-2 bg-[#2D3436] text-white px-6 py-3 rounded-full font-bold sketch-border">
               <PrivacyIcon className="w-5 h-5" />
               {t.howAiWorks.privacy}
             </div>
@@ -549,8 +475,8 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-24 px-6">
+      {/* FAQ Section - Light background */}
+      <section className="py-24 px-6 bg-[#FAFAF8]">
         <div className="max-w-3xl mx-auto">
           <AnimatedSection className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold">{t.faq.title}</h2>
@@ -560,7 +486,7 @@ const LandingPage: React.FC = () => {
             {t.faq.items.map((item, i) => (
               <AnimatedSection key={i} delay={i * 50}>
                 <div
-                  className="sketch-border bg-white cartoon-shadow overflow-hidden cursor-pointer"
+                  className="sketch-border bg-white cartoon-shadow overflow-hidden cursor-pointer hover:-translate-y-1 transition-all"
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                 >
                   <div className="p-6 flex justify-between items-center">
@@ -664,7 +590,7 @@ const LandingPage: React.FC = () => {
                 <div className="bg-[#2D3436] p-2 text-xs font-black mb-6 sketch-border w-full text-center">
                   {t.pricing.enterprise.tag}
                 </div>
-                <a href="mailto:support@neatlify.com" className="mt-auto w-full py-3 bg-white text-[#2D3436] rounded-full font-black sketch-border cartoon-shadow-hover text-center transition-all text-sm">
+                <a href="mailto:hello@neatlify.app" className="mt-auto w-full py-3 bg-white text-[#2D3436] rounded-full font-black sketch-border cartoon-shadow-hover text-center transition-all text-sm">
                   {t.pricing.contact}
                 </a>
               </div>
@@ -675,11 +601,6 @@ const LandingPage: React.FC = () => {
 
       {/* Final CTA Section */}
       <section className="py-24 px-6 bg-[#2D3436] text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-10 left-10"><LaptopIllustration className="w-32" /></div>
-          <div className="absolute bottom-10 right-10"><DocumentsIllustration className="w-24" /></div>
-          <div className="absolute top-1/2 left-1/4"><FilesImageIllustration className="w-20" /></div>
-        </div>
         <div className="max-w-3xl mx-auto text-center relative z-10">
           <AnimatedSection>
             <h2 className="text-4xl md:text-6xl font-black mb-6">{t.finalCta.title}</h2>
@@ -709,15 +630,22 @@ const LandingPage: React.FC = () => {
             </div>
             <div className="flex flex-wrap justify-center gap-8 text-sm font-bold">
               <a href="#/privacy" className="hover:text-[#FF6B6B] transition-all">{t.footer.privacy}</a>
-              <a href="#/terms" className="hover:text-[#FF6B6B] transition-all">{t.footer.terms}</a>
-              <a href="#/support" className="hover:text-[#FF6B6B] transition-all">{t.footer.support}</a>
+              <a href="#/impressum" className="hover:text-[#FF6B6B] transition-all">{lang === 'EN' ? 'Impressum' : 'Impressum'}</a>
+              <a href="mailto:hello@neatlify.app" className="hover:text-[#FF6B6B] transition-all">{t.footer.support}</a>
             </div>
-            <div className="flex gap-4">
-              {['𝕏', 'in', 'gh'].map((social, i) => (
-                <a key={i} href="#" className="w-10 h-10 sketch-border bg-white bg-opacity-10 flex items-center justify-center font-black cursor-pointer hover:bg-[#FFD93D] hover:text-[#2D3436] transition-all">
-                  {social}
-                </a>
-              ))}
+            <div className="flex items-center gap-3">
+              <a href="https://www.rebelzai.com" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-70 transition-all" title="Rebelz AI">
+                <img src="/rebelzai-logo.png" alt="Rebelz AI" className="w-8 h-8 object-contain" />
+              </a>
+              <a href="https://www.angebots-agent.de" target="_blank" rel="noopener noreferrer" className="w-[60px] h-[60px] flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-70 transition-all" title="Angebots-Agent">
+                <img src="/angebots-agent-logo.png" alt="Angebots-Agent" className="w-12 h-12 object-contain" />
+              </a>
+              <a href="https://www.snapplan.tech" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-70 transition-all" title="SnapPlan">
+                <img src="/snapplan-logo.png" alt="SnapPlan" className="w-8 h-8 object-contain" />
+              </a>
+              <a href="https://www.ki-bauunternehmer.de" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-70 transition-all" title="KI-Bauunternehmer">
+                <img src="/ki-bauunternehmer-logo.png" alt="KI-Bauunternehmer" className="w-8 h-8 object-contain" />
+              </a>
             </div>
           </div>
           <div className="pt-8 border-t border-white border-opacity-10 text-center text-sm opacity-40">
@@ -732,6 +660,30 @@ const LandingPage: React.FC = () => {
         onClose={() => setAuthModalOpen(false)}
         initialMode={authModalMode}
       />
+
+      {/* Infographic Lightbox */}
+      {infographicOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8"
+          onClick={() => setInfographicOpen(false)}
+        >
+          <div className="absolute inset-0 bg-[#2D3436] bg-opacity-90 backdrop-blur-sm" />
+          <div className="relative max-w-7xl w-full max-h-[90vh] overflow-auto">
+            <button
+              onClick={() => setInfographicOpen(false)}
+              className="absolute -top-12 right-0 text-white text-xl font-bold hover:text-[#FF6B6B] transition-colors flex items-center gap-2"
+            >
+              {lang === 'EN' ? 'Close' : 'Schließen'} ✕
+            </button>
+            <img
+              src="/infographic-how-it-works.png"
+              alt="Neatlify workflow infographic"
+              className="w-full h-auto rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
