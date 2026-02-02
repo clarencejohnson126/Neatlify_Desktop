@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { inject } from '@vercel/analytics';
 import { AuthProvider } from './contexts/AuthContext';
 import LandingPage from './LandingPage';
 import SuccessPage from './SuccessPage';
@@ -7,6 +8,9 @@ import AccountPage from './AccountPage';
 import ConstructionPage from './ConstructionPage';
 import ImpressumPage from './ImpressumPage';
 import PrivacyPage from './PrivacyPage';
+
+// Initialize Vercel Analytics
+inject();
 
 const AppContent: React.FC = () => {
   const [currentPath, setCurrentPath] = useState(window.location.hash);
