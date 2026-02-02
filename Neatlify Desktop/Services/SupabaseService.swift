@@ -230,4 +230,75 @@ class SupabaseService {
             case message
         }
     }
+
+    // MARK: - Apple Transaction Verification
+
+    /// Verify an Apple StoreKit 2 transaction with the Supabase backend.
+    /// The backend records the transaction and grants credits if valid.
+    func verifyAppleTransaction(
+        transactionId: String,
+        originalTransactionId: String,
+        productId: String,
+        purchaseDate: Date,
+        userEmail: String
+    ) async throws -> AppleTransactionResult {
+        guard let url = URL(string: "\(baseURL)/verify-apple-transaction") else {
+            throw SupabaseError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any] = [
+            "transaction_id": transactionId,
+            "original_transaction_id": originalTransactionId,
+            "product_id": productId,
+            "purchase_date": purchaseDate.timeIntervalSince1970 * 1000, // milliseconds
+            "user_email": userEmail
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SupabaseError.invalidResponse
+        }
+
+        if httpResponse.statusCode != 200 {
+            Logger.shared.error("Apple transaction verification error: \(httpResponse.statusCode)")
+            throw SupabaseError.apiError(statusCode: httpResponse.statusCode)
+        }
+
+        let result = try JSONDecoder().decode(AppleTransactionResponse.self, from: data)
+
+        if result.success {
+            return AppleTransactionResult(
+                creditsAdded: result.creditsAdded ?? 0,
+                creditsTotal: result.creditsTotal ?? 0
+            )
+        } else {
+            throw SupabaseError.apiError(statusCode: 400)
+        }
+    }
+
+    struct AppleTransactionResponse: Codable {
+        let success: Bool
+        let error: String?
+        let creditsAdded: Int?
+        let creditsTotal: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case success
+            case error
+            case creditsAdded = "credits_added"
+            case creditsTotal = "credits_total"
+        }
+    }
+
+    struct AppleTransactionResult {
+        let creditsAdded: Int
+        let creditsTotal: Int
+    }
 }

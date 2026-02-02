@@ -21,6 +21,10 @@ struct NeatlifyApp: App {
             ContentView()
                 .environmentObject(userSession)
                 .frame(minWidth: 800, minHeight: 600)
+                .onAppear {
+                    // Initialize StoreKit transaction listener for App Store version
+                    _ = StoreKitManager.shared
+                }
                 .onOpenURL { url in
                     handleIncomingURL(url)
                 }

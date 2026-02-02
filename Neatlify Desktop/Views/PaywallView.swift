@@ -25,6 +25,7 @@ struct PaywallView: View {
     @State private var promoMessage: String = ""
     @State private var promoSuccess: Bool = false
     @State private var showPromoSection: Bool = false
+    @State private var showAccountRequiredAlert: Bool = false
 
     var body: some View {
         ZStack {
@@ -77,86 +78,28 @@ struct PaywallView: View {
                         )
                     }
 
-                // Credit packs
-                VStack(spacing: 16) {
-                    // Starter
-                    CreditPackCard(
-                        title: "Starter",
-                        files: "100 files",
-                        price: "€5",
-                        perFile: "€0.05/file",
-                        badge: nil,
-                        color: .neatlifyDark,
-                        isPopular: false
-                    ) {
-                        PaymentService.shared.purchasePack(.starter)
+                // Account required notice (if not signed in)
+                if !userSession.isAccountLinked {
+                    HStack(spacing: 8) {
+                        Image(systemName: "person.crop.circle.badge.exclamationmark")
+                            .foregroundColor(.neatlifyRed)
+                        Text("Sign in required to purchase credits")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.neatlifyRed)
                     }
-
-                    // Pro - Popular
-                    CreditPackCard(
-                        title: "Pro",
-                        files: "1,000 files",
-                        price: "€30",
-                        perFile: "€0.03/file",
-                        badge: "Save 40%",
-                        color: .neatlifyGreen,
-                        isPopular: true
-                    ) {
-                        PaymentService.shared.purchasePack(.pro)
-                    }
-
-                    // Business
-                    CreditPackCard(
-                        title: "Business",
-                        files: "10,000 files",
-                        price: "€200",
-                        perFile: "€0.02/file",
-                        badge: "Save 60%",
-                        color: .neatlifyRed,
-                        isPopular: false
-                    ) {
-                        PaymentService.shared.purchasePack(.business)
-                    }
-
-                    // Enterprise
-                    Button(action: {
-                        PaymentService.shared.contactEnterprise()
-                    }) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack(spacing: 8) {
-                                    Text("Enterprise")
-                                        .font(.headline)
-                                        .fontWeight(.black)
-                                    Text("Unlimited")
-                                        .font(.caption)
-                                        .fontWeight(.black)
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(Color.purple)
-                                        .cornerRadius(4)
-                                }
-                                Text("Custom volume pricing for teams")
-                                    .font(.caption)
-                                    .foregroundColor(.neatlifyDark.opacity(0.6))
-                            }
-                            Spacer()
-                            Text("Contact Us")
-                                .font(.subheadline)
-                                .fontWeight(.bold)
-                                .foregroundColor(.purple)
-                        }
-                        .padding(16)
-                        .background(Color.white)
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.neatlifyDark, lineWidth: 2)
-                        )
-                    }
-                    .buttonStyle(.plain)
+                    .padding(12)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.neatlifyRed.opacity(0.1))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.neatlifyRed.opacity(0.3), lineWidth: 1)
+                    )
                 }
+
+                // Credit packs
+                stripePacksSection
 
                 // Promo Code Section
                 VStack(spacing: 12) {
@@ -260,7 +203,22 @@ struct PaywallView: View {
             }
         }
         .frame(width: 420, height: 720)
+        .alert("Account Required", isPresented: $showAccountRequiredAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Please sign in or create an account before purchasing credits. Visit neatlify.com to create your account.")
+        }
     }
+
+    private func purchasePack(_ pack: PaymentService.CreditPack) {
+        // Require account to be linked before purchasing
+        guard userSession.isAccountLinked else {
+            showAccountRequiredAlert = true
+            return
+        }
+        PaymentService.shared.purchasePack(pack)
+    }
+
 
     private func redeemPromoCode() {
         guard !promoCode.isEmpty else { return }
@@ -317,6 +275,92 @@ struct PaywallView: View {
                 }
             }
         }
+    }
+
+// MARK: - Stripe Section
+
+    private var stripePacksSection: some View {
+        VStack(spacing: 16) {
+            CreditPackCard(
+                title: "Starter",
+                files: "100 files",
+                price: "€5",
+                perFile: "€0.05/file",
+                badge: nil,
+                color: .neatlifyDark,
+                isPopular: false
+            ) {
+                purchasePack(.starter)
+            }
+
+            CreditPackCard(
+                title: "Pro",
+                files: "1,000 files",
+                price: "€30",
+                perFile: "€0.03/file",
+                badge: "Save 40%",
+                color: .neatlifyGreen,
+                isPopular: true
+            ) {
+                purchasePack(.pro)
+            }
+
+            CreditPackCard(
+                title: "Business",
+                files: "10,000 files",
+                price: "€200",
+                perFile: "€0.02/file",
+                badge: "Save 60%",
+                color: .neatlifyRed,
+                isPopular: false
+            ) {
+                purchasePack(.business)
+            }
+
+            enterpriseButton
+        }
+    }
+
+    // MARK: - Enterprise Button (shared)
+
+    private var enterpriseButton: some View {
+        Button(action: {
+            PaymentService.shared.contactEnterprise()
+        }) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text("Enterprise")
+                            .font(.headline)
+                            .fontWeight(.black)
+                        Text("Unlimited")
+                            .font(.caption)
+                            .fontWeight(.black)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.purple)
+                            .cornerRadius(4)
+                    }
+                    Text("Custom volume pricing for teams")
+                        .font(.caption)
+                        .foregroundColor(.neatlifyDark.opacity(0.6))
+                }
+                Spacer()
+                Text("Contact Us")
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.purple)
+            }
+            .padding(16)
+            .background(Color.white)
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.neatlifyDark, lineWidth: 2)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 

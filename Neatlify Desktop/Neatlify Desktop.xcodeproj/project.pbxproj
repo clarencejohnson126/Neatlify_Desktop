@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		115405D12F3143230010B297 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 115405D02F3143230010B297 /* StoreKit.framework */; };
 		11EBC29D2F238D8C00B62102 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 11EBC29C2F238D8C00B62102 /* Info.plist */; };
 		11EBC2C52F239A0900B62102 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 11EBC29C2F238D8C00B62102 /* Info.plist */; };
 /* End PBXBuildFile section */
@@ -29,6 +30,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		115405D02F3143230010B297 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		11EBC23D2F2388AA00B62102 /* Neatlify Desktop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Neatlify Desktop.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		11EBC24E2F2388AB00B62102 /* Neatlify DesktopTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Neatlify DesktopTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		11EBC2582F2388AB00B62102 /* Neatlify DesktopUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Neatlify DesktopUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -36,6 +38,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		115405D32F3145DD0010B297 /* Exceptions for "Services" folder in "Neatlify DesktopUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				DistributionDetector.swift,
+				StoreKitManager.swift,
+			);
+			target = 11EBC2572F2388AB00B62102 /* Neatlify DesktopUITests */;
+		};
 		11EBC2B82F2399FE00B62102 /* Exceptions for "Models" folder in "Neatlify Desktop" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -50,9 +60,11 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				ClaudeAPIService.swift,
+				DistributionDetector.swift,
 				FileService.swift,
 				PaymentService.swift,
 				PermissionsService.swift,
+				StoreKitManager.swift,
 				StripeService.swift,
 				SupabaseService.swift,
 			);
@@ -118,6 +130,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				11EBC2C32F239A0600B62102 /* Exceptions for "Services" folder in "Neatlify Desktop" target */,
+				115405D32F3145DD0010B297 /* Exceptions for "Services" folder in "Neatlify DesktopUITests" target */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -153,6 +166,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				115405D12F3143230010B297 /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -173,6 +187,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		115405CF2F3143230010B297 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				115405D02F3143230010B297 /* StoreKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		11EBC2342F2388AA00B62102 = {
 			isa = PBXGroup;
 			children = (
@@ -185,6 +207,7 @@
 				11EBC23F2F2388AA00B62102 /* Neatlify Desktop */,
 				11EBC2512F2388AB00B62102 /* Neatlify DesktopTests */,
 				11EBC25B2F2388AB00B62102 /* Neatlify DesktopUITests */,
+				115405CF2F3143230010B297 /* Frameworks */,
 				11EBC23E2F2388AA00B62102 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -507,11 +530,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Neatlify Desktop/Neatlify_Desktop.entitlements";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Neatlify Desktop/Preview Content\"";
-				DEVELOPMENT_TEAM = YH8992LT9F;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = YH8992LT9F;
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -522,6 +548,8 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.neatlify.desktop;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -533,11 +561,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Neatlify Desktop/Neatlify_Desktop.entitlements";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Neatlify Desktop/Preview Content\"";
-				DEVELOPMENT_TEAM = YH8992LT9F;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = YH8992LT9F;
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -548,6 +579,8 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.neatlify.desktop;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
