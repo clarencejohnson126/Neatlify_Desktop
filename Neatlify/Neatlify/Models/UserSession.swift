@@ -16,6 +16,9 @@ class UserSession: ObservableObject, Codable {
     @Published var lastCleanupDate: Date?
     @Published var totalCleanupsPerformed: Int = 0
     @Published var cleanupLimitReachedForMonth: Bool = false
+    @Published var email: String?
+    @Published var fullName: String?
+    @Published var creditsRemaining: Int = 3
 
     enum SubscriptionType: String, Codable {
         case monthly
@@ -31,6 +34,9 @@ class UserSession: ObservableObject, Codable {
         case lastCleanupDate
         case totalCleanupsPerformed
         case cleanupLimitReachedForMonth
+        case email
+        case fullName
+        case creditsRemaining
     }
 
     init() {}
@@ -45,6 +51,9 @@ class UserSession: ObservableObject, Codable {
         lastCleanupDate = try container.decodeIfPresent(Date.self, forKey: .lastCleanupDate)
         totalCleanupsPerformed = try container.decode(Int.self, forKey: .totalCleanupsPerformed)
         cleanupLimitReachedForMonth = try container.decode(Bool.self, forKey: .cleanupLimitReachedForMonth)
+        email = try container.decodeIfPresent(String.self, forKey: .email)
+        fullName = try container.decodeIfPresent(String.self, forKey: .fullName)
+        creditsRemaining = try container.decodeIfPresent(Int.self, forKey: .creditsRemaining) ?? 3
     }
 
     func encode(to encoder: Encoder) throws {
@@ -57,6 +66,9 @@ class UserSession: ObservableObject, Codable {
         try container.encode(lastCleanupDate, forKey: .lastCleanupDate)
         try container.encode(totalCleanupsPerformed, forKey: .totalCleanupsPerformed)
         try container.encode(cleanupLimitReachedForMonth, forKey: .cleanupLimitReachedForMonth)
+        try container.encodeIfPresent(email, forKey: .email)
+        try container.encodeIfPresent(fullName, forKey: .fullName)
+        try container.encode(creditsRemaining, forKey: .creditsRemaining)
     }
 
     func canPerformCleanup() -> Bool {
