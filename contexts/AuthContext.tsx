@@ -116,10 +116,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    // Let onAuthStateChange listener handle state updates
+    // to avoid race conditions and stale UI
     await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
-    setSession(null);
   };
 
   const resetPassword = async (email: string) => {
