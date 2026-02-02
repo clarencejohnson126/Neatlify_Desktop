@@ -158,7 +158,22 @@ const SuccessPage: React.FC = () => {
           </div>
         )}
 
-        <div className="mt-8 flex gap-4 justify-center">
+        {/* Open App Button - Primary Action */}
+        {status === 'success' && sessionId && (
+          <div className="mt-8 mb-6">
+            <a
+              href={`neatlify://activate?session_id=${sessionId}`}
+              className="inline-block px-8 py-4 bg-[#29AB87] text-white text-xl font-bold sketch-border cartoon-shadow-hover transition-all"
+            >
+              ✨ Open Neatlify App
+            </a>
+            <p className="mt-4 text-sm text-charcoal opacity-60">
+              Your credits are ready! Click above to return to the app and start organizing.
+            </p>
+          </div>
+        )}
+
+        <div className="mt-4 flex gap-4 justify-center">
           <button
             onClick={() => window.location.hash = '/'}
             className="px-6 py-3 bg-[#2D3436] text-white font-bold sketch-border cartoon-shadow-hover transition-all"
@@ -167,7 +182,7 @@ const SuccessPage: React.FC = () => {
           </button>
           <button
             onClick={() => window.location.hash = '/account'}
-            className="px-6 py-3 bg-[#29AB87] text-white font-bold sketch-border cartoon-shadow-hover transition-all"
+            className="px-6 py-3 bg-white text-charcoal font-bold sketch-border cartoon-shadow-hover transition-all"
           >
             My Account
           </button>

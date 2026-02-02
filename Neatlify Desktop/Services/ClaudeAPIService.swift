@@ -109,13 +109,23 @@ class ClaudeAPIService {
         - For single folder: return ONLY that category, no "other"
         - For multi-category: return 5-8 categories including "other"
 
+        LANGUAGE DETECTION:
+        - Default to "en" (English) for output labels/categories
+        - If user writes in German or asks for German labels → language: "de"
+        - If user writes in Spanish or asks for Spanish labels → language: "es"
+        - If user writes in French or asks for French labels → language: "fr"
+        - Explicit requests like "label in German" or "deutsche Namen" → use that language
+        - The language affects the OUTPUT (label names, category names), not how you parse the request
+
         Examples:
-        - "Label these photos based on what they show" → mode: "label", criteria: "descriptive content labels", categories: []
-        - "Give short fitting label names" → mode: "label", criteria: "short descriptive labels", categories: []
-        - "Put all screenshots in Screenshots Final" → mode: "organize", criteria: "single folder", categories: ["Screenshots Final"]
-        - "Organize by file type" → mode: "organize", criteria: "file type", categories: ["images", "documents", "videos", "other"]
+        - "Label these photos based on what they show" → mode: "label", criteria: "descriptive content labels", categories: [], language: "en"
+        - "Beschrifte diese Fotos" → mode: "label", criteria: "descriptive content labels", categories: [], language: "de"
+        - "Label my files in German" → mode: "label", criteria: "descriptive content labels", categories: [], language: "de"
+        - "Give short fitting label names" → mode: "label", criteria: "short descriptive labels", categories: [], language: "en"
+        - "Put all screenshots in Screenshots Final" → mode: "organize", criteria: "single folder", categories: ["Screenshots Final"], language: "en"
+        - "Organize by file type" → mode: "organize", criteria: "file type", categories: ["images", "documents", "videos", "other"], language: "en"
+        - "Sortiere nach Dateityp" → mode: "organize", criteria: "file type", categories: ["Bilder", "Dokumente", "Videos", "Sonstige"], language: "de"
         - "Now label those same files" (after previous task) → use folder from previous task, mode: "label"
-        - "Do the same for my other folder" → same mode as before, but user will select new folder
         """
 
         let tool = IntentExtractionTool(
@@ -315,18 +325,48 @@ class ClaudeAPIService {
     }
 
     // Generate descriptive labels for images based on their content
-    func generateLabels(_ images: [(filename: String, base64: String)], labelStyle: String) async throws -> [String: String] {
+    func generateLabels(_ images: [(filename: String, base64: String)], labelStyle: String, language: String = "en") async throws -> [String: String] {
+        // Language-specific examples for the prompt
+        let languageExamples: String
+        let languageInstruction: String
+
+        switch language.lowercased() {
+        case "de":
+            languageExamples = "strand_sonnenuntergang, buero_besprechung, katze_schlafend"
+            languageInstruction = "Generate labels in GERMAN (Deutsch)."
+        case "es":
+            languageExamples = "playa_atardecer, reunion_oficina, gato_durmiendo"
+            languageInstruction = "Generate labels in SPANISH (Español)."
+        case "fr":
+            languageExamples = "plage_coucher_soleil, reunion_bureau, chat_endormi"
+            languageInstruction = "Generate labels in FRENCH (Français)."
+        case "it":
+            languageExamples = "spiaggia_tramonto, riunione_ufficio, gatto_dorme"
+            languageInstruction = "Generate labels in ITALIAN (Italiano)."
+        case "pt":
+            languageExamples = "praia_por_do_sol, reuniao_escritorio, gato_dormindo"
+            languageInstruction = "Generate labels in PORTUGUESE (Português)."
+        case "nl":
+            languageExamples = "strand_zonsondergang, kantoor_vergadering, kat_slapend"
+            languageInstruction = "Generate labels in DUTCH (Nederlands)."
+        default: // English
+            languageExamples = "beach_sunset, office_meeting, cat_sleeping"
+            languageInstruction = "Generate labels in ENGLISH."
+        }
+
         let prompt = """
         Look at these images and generate a short, descriptive filename label for each one.
 
+        \(languageInstruction)
         Labeling style requested: \(labelStyle)
 
         Rules for labels:
         - Keep labels SHORT (2-5 words max)
-        - Use lowercase with underscores (e.g., "beach_sunset", "office_meeting", "cat_sleeping")
+        - Use lowercase with underscores (e.g., "\(languageExamples)")
         - Be specific about what's in the image
         - No file extensions in the label
         - Make labels unique if images are similar
+        - Use the requested language for ALL labels
 
         Return ONLY valid JSON with this structure (no additional text):
         {
@@ -659,9 +699,13 @@ class ClaudeAPIService {
                     "type": "string",
                     "enum": ["organize", "label"],
                     "description": "Mode of operation: 'organize' to move files into folders, 'label' to rename files based on their visual content"
+                ],
+                "language": [
+                    "type": "string",
+                    "description": "The language for output labels/categories. Use ISO codes: 'en' for English, 'de' for German, 'es' for Spanish, 'fr' for French, etc. Default to 'en' unless user explicitly requests another language."
                 ]
             ],
-            "required": ["folder", "criteria", "suggested_categories", "mode"]
+            "required": ["folder", "criteria", "suggested_categories", "mode", "language"]
         ]
     }
 

@@ -171,4 +171,63 @@ class SupabaseService {
             case creditsRemaining = "credits_remaining"
         }
     }
+
+    // MARK: - Promo Code Redemption
+
+    /// Redeem a promo code and add credits to user's account
+    func redeemPromoCode(code: String, userEmail: String) async throws -> PromoCodeResult {
+        guard let url = URL(string: "\(baseURL)/redeem-promo-code") else {
+            throw SupabaseError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any] = [
+            "promo_code": code,
+            "user_email": userEmail
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SupabaseError.invalidResponse
+        }
+
+        let result = try JSONDecoder().decode(PromoCodeResponse.self, from: data)
+
+        if result.success {
+            return .success(
+                creditsAdded: result.creditsAdded ?? 0,
+                creditsTotal: result.creditsTotal ?? 0,
+                message: result.message ?? "Promo code redeemed!"
+            )
+        } else {
+            return .failed(reason: result.error ?? "Failed to redeem promo code")
+        }
+    }
+
+    enum PromoCodeResult {
+        case success(creditsAdded: Int, creditsTotal: Int, message: String)
+        case failed(reason: String)
+    }
+
+    struct PromoCodeResponse: Codable {
+        let success: Bool
+        let error: String?
+        let creditsAdded: Int?
+        let creditsTotal: Int?
+        let message: String?
+
+        enum CodingKeys: String, CodingKey {
+            case success
+            case error
+            case creditsAdded = "credits_added"
+            case creditsTotal = "credits_total"
+            case message
+        }
+    }
 }

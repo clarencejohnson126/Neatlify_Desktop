@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 @main
 struct NeatlifyApp: App {
@@ -23,10 +24,24 @@ struct NeatlifyApp: App {
                 .onOpenURL { url in
                     handleIncomingURL(url)
                 }
+                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                    // Sync credits when app becomes active (in case user paid and returned)
+                    if userSession.isAccountLinked {
+                        Task {
+                            await userSession.syncCreditsFromServer()
+                        }
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .creditsDidChange)) { _ in
+                    // Refresh credits from saved UserDefaults after organization completes
+                    let savedSession = UserSession.load()
+                    userSession.fileCredits = savedSession.fileCredits
+                    Logger.shared.info("Credits refreshed in UI: \(userSession.fileCredits)")
+                }
                 .alert("Payment Successful!", isPresented: $showPaymentSuccess) {
-                    Button("OK", role: .cancel) {}
+                    Button("Start Organizing", role: .cancel) {}
                 } message: {
-                    Text("\(creditsAdded) credits have been added to your account!")
+                    Text("\(creditsAdded) credits have been added to your account! You can now organize your files.")
                 }
                 .alert("Payment Error", isPresented: $showPaymentError) {
                     Button("OK", role: .cancel) {}
@@ -74,17 +89,24 @@ struct NeatlifyApp: App {
                 await MainActor.run {
                     switch result {
                     case .success(let credits):
-                        userSession.fileCredits += credits
-                        userSession.save()
+                        // Sync credits from server instead of adding locally
+                        // (credits were already added server-side by the success page)
+                        Task {
+                            await userSession.syncCreditsFromServer()
+                        }
                         creditsAdded = credits
                         showPaymentSuccess = true
-                        Logger.shared.info("Payment verified! Added \(credits) credits")
+                        Logger.shared.info("Payment verified! Synced \(credits) credits from server")
 
                     case .notPaid:
                         showError("Payment not completed. Please try again.")
 
                     case .alreadyUsed:
-                        showError("This payment has already been activated.")
+                        // Already processed - just sync credits from server
+                        Task {
+                            await userSession.syncCreditsFromServer()
+                        }
+                        Logger.shared.info("Payment already activated - syncing credits from server")
 
                     case .unknownProduct:
                         showError("Unknown product. Please contact support.")
@@ -92,6 +114,11 @@ struct NeatlifyApp: App {
                 }
             } catch {
                 await MainActor.run {
+                    // If verification fails, still try to sync from server
+                    // (in case payment was already processed)
+                    Task {
+                        await userSession.syncCreditsFromServer()
+                    }
                     showError("Failed to verify payment: \(error.localizedDescription)")
                 }
             }

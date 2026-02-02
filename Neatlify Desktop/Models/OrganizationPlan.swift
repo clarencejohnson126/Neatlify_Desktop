@@ -17,8 +17,9 @@ struct OrganizationPlan: Codable {
     let suggestedFolderStructure: [String: Int] // category -> file count
     let mode: OrganizationMode
     let fileLabels: [UUID: String] // FileItem.id -> new filename (for label mode)
+    let language: String // Output language for labels/categories (e.g., "en", "de")
 
-    init(id: UUID = UUID(), timestamp: Date = Date(), sourceFolder: URL, criteria: String, categories: [String], fileAssignments: [UUID: String], suggestedFolderStructure: [String: Int], mode: OrganizationMode = .organize, fileLabels: [UUID: String] = [:]) {
+    init(id: UUID = UUID(), timestamp: Date = Date(), sourceFolder: URL, criteria: String, categories: [String], fileAssignments: [UUID: String], suggestedFolderStructure: [String: Int], mode: OrganizationMode = .organize, fileLabels: [UUID: String] = [:], language: String = "en") {
         self.id = id
         self.timestamp = timestamp
         self.sourceFolder = sourceFolder
@@ -28,6 +29,7 @@ struct OrganizationPlan: Codable {
         self.suggestedFolderStructure = suggestedFolderStructure
         self.mode = mode
         self.fileLabels = fileLabels
+        self.language = language
     }
 
     var totalFiles: Int {
@@ -54,12 +56,14 @@ struct OrganizationIntent: Codable {
     let criteria: String
     let suggestedCategories: [String]
     let mode: OrganizationMode
+    let language: String  // Output language for labels/categories (e.g., "en", "de", "es")
 
     enum CodingKeys: String, CodingKey {
         case folder
         case criteria
         case suggestedCategories = "suggested_categories"
         case mode
+        case language
     }
 
     init(from decoder: Decoder) throws {
@@ -69,6 +73,8 @@ struct OrganizationIntent: Codable {
         suggestedCategories = try container.decode([String].self, forKey: .suggestedCategories)
         // Default to organize if mode not specified
         mode = try container.decodeIfPresent(OrganizationMode.self, forKey: .mode) ?? .organize
+        // Default to English if language not specified
+        language = try container.decodeIfPresent(String.self, forKey: .language) ?? "en"
     }
 }
 

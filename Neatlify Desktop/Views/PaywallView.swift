@@ -20,55 +20,62 @@ struct PaywallView: View {
     @EnvironmentObject var userSession: UserSession
     @Binding var isPresented: Bool
 
+    @State private var promoCode: String = ""
+    @State private var isRedeemingCode: Bool = false
+    @State private var promoMessage: String = ""
+    @State private var promoSuccess: Bool = false
+    @State private var showPromoSection: Bool = false
+
     var body: some View {
         ZStack {
             // Background
             Color.neatlifyBg.ignoresSafeArea()
 
-            VStack(spacing: 24) {
-                // Header with logo
-                VStack(spacing: 16) {
-                    // Logo
-                    HStack(spacing: 12) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.neatlifyGreen)
-                                .frame(width: 50, height: 50)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.neatlifyDark, lineWidth: 3)
-                                )
-                            Text("N")
-                                .font(.system(size: 28, weight: .black))
-                                .foregroundColor(.white)
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header with logo
+                    VStack(spacing: 16) {
+                        // Logo
+                        HStack(spacing: 12) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.neatlifyGreen)
+                                    .frame(width: 50, height: 50)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.neatlifyDark, lineWidth: 3)
+                                    )
+                                Text("N")
+                                    .font(.system(size: 28, weight: .black))
+                                    .foregroundColor(.white)
+                            }
+                            Text("Neatlify")
+                                .font(.system(size: 32, weight: .black))
+                                .foregroundColor(.neatlifyDark)
                         }
-                        Text("Neatlify")
-                            .font(.system(size: 32, weight: .black))
+
+                        Text("Get More Credits")
+                            .font(.system(size: 28, weight: .black))
                             .foregroundColor(.neatlifyDark)
-                    }
 
-                    Text("Get More Credits")
-                        .font(.system(size: 28, weight: .black))
-                        .foregroundColor(.neatlifyDark)
-
-                    // Credits badge
-                    HStack(spacing: 8) {
-                        Image(systemName: "sparkles")
-                            .foregroundColor(.neatlifyYellow)
-                        Text("\(userSession.fileCredits) credits remaining")
-                            .font(.subheadline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.neatlifyDark.opacity(0.7))
+                        // Credits badge
+                        HStack(spacing: 8) {
+                            Image(systemName: "sparkles")
+                                .foregroundColor(.neatlifyYellow)
+                            Text("\(userSession.fileCredits) credits remaining")
+                                .font(.subheadline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.neatlifyDark.opacity(0.7))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color.neatlifyYellow.opacity(0.2))
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.neatlifyDark, lineWidth: 2)
+                        )
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color.neatlifyYellow.opacity(0.2))
-                    .cornerRadius(20)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color.neatlifyDark, lineWidth: 2)
-                    )
-                }
 
                 // Credit packs
                 VStack(spacing: 16) {
@@ -151,6 +158,92 @@ struct PaywallView: View {
                     .buttonStyle(.plain)
                 }
 
+                // Promo Code Section
+                VStack(spacing: 12) {
+                    Button(action: {
+                        withAnimation {
+                            showPromoSection.toggle()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "ticket.fill")
+                                .foregroundColor(.neatlifyGreen)
+                            Text("Have a promo code?")
+                                .font(.subheadline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.neatlifyGreen)
+                            Image(systemName: showPromoSection ? "chevron.up" : "chevron.down")
+                                .font(.caption)
+                                .foregroundColor(.neatlifyGreen)
+                        }
+                    }
+                    .buttonStyle(.plain)
+
+                    if showPromoSection {
+                        VStack(spacing: 12) {
+                            HStack(spacing: 8) {
+                                TextField("Enter promo code", text: $promoCode)
+                                    .textFieldStyle(.plain)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .padding(12)
+                                    .background(Color.white)
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.neatlifyDark, lineWidth: 2)
+                                    )
+                                    .textCase(.uppercase)
+                                    .disabled(isRedeemingCode)
+
+                                Button(action: {
+                                    redeemPromoCode()
+                                }) {
+                                    if isRedeemingCode {
+                                        ProgressView()
+                                            .scaleEffect(0.8)
+                                            .frame(width: 80, height: 40)
+                                    } else {
+                                        Text("Redeem")
+                                            .font(.subheadline)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.white)
+                                            .frame(width: 80, height: 40)
+                                    }
+                                }
+                                .background(promoCode.isEmpty ? Color.gray : Color.neatlifyGreen)
+                                .cornerRadius(8)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.neatlifyDark, lineWidth: 2)
+                                )
+                                .disabled(promoCode.isEmpty || isRedeemingCode)
+                                .buttonStyle(.plain)
+                            }
+
+                            // Promo message feedback
+                            if !promoMessage.isEmpty {
+                                HStack {
+                                    Image(systemName: promoSuccess ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                                        .foregroundColor(promoSuccess ? .neatlifyGreen : .neatlifyRed)
+                                    Text(promoMessage)
+                                        .font(.caption)
+                                        .foregroundColor(promoSuccess ? .neatlifyGreen : .neatlifyRed)
+                                }
+                                .padding(8)
+                                .background(promoSuccess ? Color.neatlifyGreen.opacity(0.1) : Color.neatlifyRed.opacity(0.1))
+                                .cornerRadius(6)
+                            }
+                        }
+                        .padding(16)
+                        .background(Color.neatlifyYellow.opacity(0.1))
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.neatlifyDark.opacity(0.3), lineWidth: 1)
+                        )
+                    }
+                }
+
                 // Close button
                 Button(action: {
                     isPresented = false
@@ -162,10 +255,68 @@ struct PaywallView: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.top, 8)
+                }
+                .padding(32)
             }
-            .padding(32)
         }
-        .frame(width: 420, height: 620)
+        .frame(width: 420, height: 720)
+    }
+
+    private func redeemPromoCode() {
+        guard !promoCode.isEmpty else { return }
+
+        // Get user email (required for promo code redemption)
+        guard let email = userSession.userEmail, !email.isEmpty else {
+            promoMessage = "Please link your account first to use promo codes"
+            promoSuccess = false
+            return
+        }
+
+        isRedeemingCode = true
+        promoMessage = ""
+
+        Task {
+            do {
+                let result = try await SupabaseService.shared.redeemPromoCode(
+                    code: promoCode,
+                    userEmail: email
+                )
+
+                await MainActor.run {
+                    switch result {
+                    case .success(let creditsAdded, _, let message):
+                        promoMessage = message
+                        promoSuccess = true
+                        promoCode = ""
+
+                        // Update local credits
+                        userSession.fileCredits += creditsAdded
+                        userSession.save()
+
+                        // Also sync from server to be sure
+                        Task {
+                            await userSession.syncCreditsFromServer()
+                        }
+
+                        // Close paywall after short delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            isPresented = false
+                        }
+
+                    case .failed(let reason):
+                        promoMessage = reason
+                        promoSuccess = false
+                    }
+                    isRedeemingCode = false
+                }
+            } catch {
+                await MainActor.run {
+                    promoMessage = "Failed to redeem code. Please try again."
+                    promoSuccess = false
+                    isRedeemingCode = false
+                }
+            }
+        }
     }
 }
 

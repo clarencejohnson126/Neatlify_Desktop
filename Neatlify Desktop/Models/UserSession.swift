@@ -17,7 +17,7 @@ class UserSession: ObservableObject, Codable {
     @Published var userEmail: String? = nil  // Linked account email for server-side credit checking
 
     // Pricing constants
-    static let freeCleanupFileLimit = 100  // Free trial limit
+    static let freeCleanupFileLimit = 0  // Free trial disabled - scan free, organize paid
     static let maxFilesPerCleanup = 10000  // Hard cap per cleanup
 
     // Keychain key for trial tracking (persists across reinstalls)
@@ -191,15 +191,6 @@ class UserSession: ObservableObject, Codable {
             return (false, "Maximum \(UserSession.maxFilesPerCleanup) files per cleanup. Please select fewer files.")
         }
 
-        // Free cleanup (first time only, 100 files max) - only if no account linked
-        if !hasUsedFreeCleanup && !isAccountLinked {
-            if fileCount <= UserSession.freeCleanupFileLimit {
-                return (true, "Free trial: \(fileCount) of \(UserSession.freeCleanupFileLimit) files")
-            } else {
-                return (false, "Free trial allows up to \(UserSession.freeCleanupFileLimit) files. Link your account for more.")
-            }
-        }
-
         // If account is linked, use cached credits (server will be final check)
         if isAccountLinked {
             if fileCredits >= fileCount {
@@ -213,8 +204,8 @@ class UserSession: ObservableObject, Codable {
             return (false, "No credits remaining. Please purchase a credit pack to continue.")
         }
 
-        // Not linked and trial used
-        return (false, "Please link your account to continue using Neatlify.")
+        // Not linked - require subscription
+        return (false, "Subscribe to organize your files.")
     }
 
     /// Server-side credit check (async - must be called before organization)
@@ -224,18 +215,9 @@ class UserSession: ObservableObject, Codable {
             return (false, "Maximum \(UserSession.maxFilesPerCleanup) files per cleanup.")
         }
 
-        // If no account linked, allow free trial
-        if !isAccountLinked && !hasUsedFreeCleanup {
-            if fileCount <= UserSession.freeCleanupFileLimit {
-                return (true, "Free trial: \(fileCount) of \(UserSession.freeCleanupFileLimit) files")
-            } else {
-                return (false, "Free trial allows up to \(UserSession.freeCleanupFileLimit) files.")
-            }
-        }
-
         // Account must be linked for paid usage
         guard let email = userEmail else {
-            return (false, "Please link your account to continue.")
+            return (false, "Subscribe to organize your files.")
         }
 
         // Server-side validation
@@ -315,10 +297,10 @@ class UserSession: ObservableObject, Codable {
     }
 
     func getCreditsSummary() -> String {
-        if !hasUsedFreeCleanup {
-            return "Free trial available (\(UserSession.freeCleanupFileLimit) files)"
+        if fileCredits > 0 {
+            return "\(fileCredits) credits remaining"
         }
-        return "\(fileCredits) credits remaining"
+        return "Subscribe to get credits"
     }
 
     func save() {

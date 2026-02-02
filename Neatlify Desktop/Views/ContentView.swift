@@ -36,6 +36,7 @@ struct ContentView: View {
             // Preview sheet
             if organizationViewModel.showPreview {
                 PreviewSheet(viewModel: organizationViewModel)
+                    .environmentObject(userSession)
             }
         }
         .sheet(isPresented: $showOnboarding) {
@@ -181,7 +182,14 @@ struct HeaderView: View {
 }
 
 struct PreviewSheet: View {
+    @EnvironmentObject var userSession: UserSession
     @ObservedObject var viewModel: OrganizationViewModel
+
+    // Check credits against live userSession (updates when credits sync)
+    private var hasCredits: Bool {
+        guard let pricing = viewModel.pricingInfo else { return false }
+        return userSession.fileCredits >= pricing.totalFiles
+    }
 
     var body: some View {
         ZStack {
@@ -203,20 +211,40 @@ struct PreviewSheet: View {
                 if let plan = viewModel.organizationPlan, let pricing = viewModel.pricingInfo {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
-                            // Summary card
+                            // Files found card with sample names
                             VStack(alignment: .leading, spacing: 12) {
                                 HStack {
                                     Image(systemName: "doc.on.doc.fill")
                                         .foregroundColor(.neatlifyGreen)
-                                    Text("Files to organize: \(plan.totalFiles)")
+                                    Text("Found \(pricing.totalFiles) files")
                                         .font(.headline)
                                         .fontWeight(.bold)
                                         .foregroundColor(.neatlifyDark)
                                 }
 
-                                Text(plan.categorySummary)
-                                    .font(.body)
-                                    .foregroundColor(.neatlifyDark.opacity(0.8))
+                                // Sample file names
+                                if !pricing.sampleFileNames.isEmpty {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        ForEach(pricing.sampleFileNames, id: \.self) { name in
+                                            HStack(spacing: 6) {
+                                                Image(systemName: name.lowercased().hasSuffix(".pdf") ? "doc.fill" : "photo.fill")
+                                                    .font(.caption)
+                                                    .foregroundColor(.neatlifyDark.opacity(0.5))
+                                                Text(name)
+                                                    .font(.caption)
+                                                    .foregroundColor(.neatlifyDark.opacity(0.7))
+                                                    .lineLimit(1)
+                                            }
+                                        }
+                                        if pricing.totalFiles > pricing.sampleFileNames.count {
+                                            Text("... and \(pricing.totalFiles - pricing.sampleFileNames.count) more files")
+                                                .font(.caption)
+                                                .foregroundColor(.neatlifyDark.opacity(0.5))
+                                                .italic()
+                                        }
+                                    }
+                                    .padding(.leading, 4)
+                                }
                             }
                             .padding(16)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -227,34 +255,84 @@ struct PreviewSheet: View {
                                     .stroke(Color.neatlifyDark, lineWidth: 2)
                             )
 
-                            // Credits card
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
-                                    Image(systemName: "sparkles")
-                                        .foregroundColor(.neatlifyYellow)
-                                    Text("Credits")
-                                        .font(.headline)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.neatlifyDark)
-                                }
-
-                                if pricing.isFreeTrialEligible {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "gift.fill")
+                            // Proposed folder structure
+                            if !pricing.categoryCounts.isEmpty {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack {
+                                        Image(systemName: "folder.fill")
                                             .foregroundColor(.neatlifyGreen)
-                                        Text("FREE TRIAL")
-                                            .font(.subheadline)
-                                            .fontWeight(.black)
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 4)
-                                            .background(Color.neatlifyGreen)
-                                            .cornerRadius(6)
+                                        Text("Proposed Folder Structure")
+                                            .font(.headline)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.neatlifyDark)
                                     }
-                                    Text("This cleanup is free (up to 100 files)")
+
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        ForEach(pricing.categoryCounts.sorted(by: { $0.value > $1.value }), id: \.key) { category, count in
+                                            HStack {
+                                                Image(systemName: "folder.fill")
+                                                    .font(.caption)
+                                                    .foregroundColor(.neatlifyYellow)
+                                                Text(category)
+                                                    .font(.subheadline)
+                                                    .fontWeight(.medium)
+                                                    .foregroundColor(.neatlifyDark)
+                                                Spacer()
+                                                Text("\(count) files")
+                                                    .font(.caption)
+                                                    .foregroundColor(.neatlifyDark.opacity(0.6))
+                                            }
+                                        }
+                                    }
+                                    .padding(.leading, 4)
+                                }
+                                .padding(16)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.neatlifyGreen.opacity(0.1))
+                                .cornerRadius(12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.neatlifyDark, lineWidth: 2)
+                                )
+                            } else if plan.mode == .label {
+                                // Label mode preview
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack {
+                                        Image(systemName: "tag.fill")
+                                            .foregroundColor(.neatlifyGreen)
+                                        Text("Files will be renamed")
+                                            .font(.headline)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.neatlifyDark)
+                                    }
+
+                                    Text("AI will analyze each file and generate descriptive names based on content.")
                                         .font(.subheadline)
-                                        .foregroundColor(.neatlifyDark.opacity(0.6))
-                                } else {
+                                        .foregroundColor(.neatlifyDark.opacity(0.7))
+                                }
+                                .padding(16)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.neatlifyGreen.opacity(0.1))
+                                .cornerRadius(12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.neatlifyDark, lineWidth: 2)
+                                )
+                            }
+
+                            // Credits or Subscribe card
+                            VStack(alignment: .leading, spacing: 12) {
+                                if hasCredits {
+                                    // User has credits
+                                    HStack {
+                                        Image(systemName: "sparkles")
+                                            .foregroundColor(.neatlifyYellow)
+                                        Text("Credits")
+                                            .font(.headline)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.neatlifyDark)
+                                    }
+
                                     HStack {
                                         Text("\(pricing.totalFiles)")
                                             .font(.system(size: 32, weight: .black))
@@ -264,14 +342,49 @@ struct PreviewSheet: View {
                                             .foregroundColor(.neatlifyDark.opacity(0.7))
                                     }
 
-                                    Text("Remaining after: \(pricing.creditsAvailable - pricing.totalFiles) credits")
+                                    Text("Remaining after: \(userSession.fileCredits - pricing.totalFiles) credits")
                                         .font(.caption)
                                         .foregroundColor(.neatlifyDark.opacity(0.5))
+                                } else {
+                                    // User needs more credits
+                                    HStack {
+                                        Image(systemName: "creditcard.fill")
+                                            .foregroundColor(.neatlifyYellow)
+                                        Text("Credits Required")
+                                            .font(.headline)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.neatlifyDark)
+                                    }
+
+                                    Text("Your files have been scanned and are ready to organize. Purchase credits to continue.")
+                                        .font(.subheadline)
+                                        .foregroundColor(.neatlifyDark.opacity(0.7))
+
+                                    HStack(spacing: 16) {
+                                        VStack(alignment: .leading) {
+                                            Text("You have:")
+                                                .font(.caption)
+                                                .foregroundColor(.neatlifyDark.opacity(0.5))
+                                            Text("\(userSession.fileCredits) credits")
+                                                .font(.subheadline)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.neatlifyDark)
+                                        }
+                                        VStack(alignment: .leading) {
+                                            Text("Need:")
+                                                .font(.caption)
+                                                .foregroundColor(.neatlifyDark.opacity(0.5))
+                                            Text("\(pricing.totalFiles) credits")
+                                                .font(.subheadline)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.neatlifyGreen)
+                                        }
+                                    }
                                 }
                             }
                             .padding(16)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.neatlifyYellow.opacity(0.2))
+                            .background(hasCredits ? Color.neatlifyYellow.opacity(0.2) : Color.neatlifyGreen.opacity(0.15))
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
@@ -279,17 +392,19 @@ struct PreviewSheet: View {
                             )
 
                             // Destination info
-                            HStack {
-                                Image(systemName: "arrow.right.circle.fill")
-                                    .foregroundColor(.neatlifyDark.opacity(0.5))
-                                Text("Files will be moved to: Organized_[timestamp]/")
-                                    .font(.caption)
-                                    .foregroundColor(.neatlifyDark.opacity(0.5))
+                            if hasCredits {
+                                HStack {
+                                    Image(systemName: "arrow.right.circle.fill")
+                                        .foregroundColor(.neatlifyDark.opacity(0.5))
+                                    Text("Files will be moved to: Organized_[timestamp]/")
+                                        .font(.caption)
+                                        .foregroundColor(.neatlifyDark.opacity(0.5))
+                                }
                             }
                         }
                         .padding()
                     }
-                    .frame(maxHeight: 400)
+                    .frame(maxHeight: 450)
 
                     // Action buttons
                     HStack(spacing: 16) {
@@ -311,28 +426,51 @@ struct PreviewSheet: View {
                         .buttonStyle(.plain)
                         .keyboardShortcut(.escape)
 
-                        Button(action: {
-                            Task {
-                                await viewModel.executeOrganization()
+                        if hasCredits {
+                            Button(action: {
+                                Task {
+                                    await viewModel.executeOrganization()
+                                }
+                            }) {
+                                HStack {
+                                    Image(systemName: "sparkles")
+                                    Text("Organize Now")
+                                        .fontWeight(.bold)
+                                }
+                                .foregroundColor(.white)
+                                .frame(width: 180, height: 44)
+                                .background(Color.neatlifyGreen)
+                                .cornerRadius(10)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color.neatlifyDark, lineWidth: 2)
+                                )
+                                .shadow(color: Color.neatlifyDark.opacity(0.2), radius: 0, x: 3, y: 3)
                             }
-                        }) {
-                            HStack {
-                                Image(systemName: pricing.isFreeTrialEligible ? "gift.fill" : "sparkles")
-                                Text(pricing.isFreeTrialEligible ? "Start Free Trial" : "Organize Now")
-                                    .fontWeight(.bold)
+                            .buttonStyle(.plain)
+                            .keyboardShortcut(.return)
+                        } else {
+                            Button(action: {
+                                viewModel.showPaywall = true
+                            }) {
+                                HStack {
+                                    Image(systemName: "creditcard.fill")
+                                    Text("Subscribe")
+                                        .fontWeight(.bold)
+                                }
+                                .foregroundColor(.white)
+                                .frame(width: 180, height: 44)
+                                .background(Color.neatlifyGreen)
+                                .cornerRadius(10)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color.neatlifyDark, lineWidth: 2)
+                                )
+                                .shadow(color: Color.neatlifyDark.opacity(0.2), radius: 0, x: 3, y: 3)
                             }
-                            .foregroundColor(.white)
-                            .frame(width: 180, height: 44)
-                            .background(Color.neatlifyGreen)
-                            .cornerRadius(10)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.neatlifyDark, lineWidth: 2)
-                            )
-                            .shadow(color: Color.neatlifyDark.opacity(0.2), radius: 0, x: 3, y: 3)
+                            .buttonStyle(.plain)
+                            .keyboardShortcut(.return)
                         }
-                        .buttonStyle(.plain)
-                        .keyboardShortcut(.return)
                     }
                 }
             }

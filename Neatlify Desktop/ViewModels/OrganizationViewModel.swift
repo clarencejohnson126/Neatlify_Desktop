@@ -35,8 +35,10 @@ class OrganizationViewModel: ObservableObject {
     struct PricingInfo {
         let totalFiles: Int
         let creditsAvailable: Int
-        let isFreeTrialEligible: Bool
+        let isFreeTrialEligible: Bool  // Deprecated - always false now
         let reason: String
+        let sampleFileNames: [String]  // First few file names for preview
+        let categoryCounts: [String: Int]  // Category -> file count breakdown
     }
 
     enum OrganizationStep {
@@ -160,18 +162,36 @@ class OrganizationViewModel: ObservableObject {
                 statusMessage = "Organization complete! \(processedFiles) files organized."
             }
 
-            // Deduct credits server-side (or mark free trial used locally)
-            let session = UserSession.load()
+            // Deduct credits server-side
             let fileCount = scannedFiles.count
+            let session = UserSession.load()
 
-            if session.isAccountLinked {
-                let deductSuccess = await session.deductCreditsServerSide(fileCount: fileCount)
-                if !deductSuccess {
-                    Logger.shared.error("Warning: Server-side credit deduction failed")
+            if let userEmail = session.userEmail, !userEmail.isEmpty {
+                // Deduct credits on server
+                do {
+                    let result = try await SupabaseService.shared.deductCredits(
+                        userEmail: userEmail,
+                        fileCount: fileCount
+                    )
+
+                    switch result {
+                    case .success(let deducted, let remaining):
+                        Logger.shared.info("Server deducted \(deducted) credits. Remaining: \(remaining)")
+                        // Update local cache
+                        session.fileCredits = remaining
+                        session.save()
+
+                    case .failed(let reason):
+                        Logger.shared.error("Server credit deduction failed: \(reason)")
+                    }
+                } catch {
+                    Logger.shared.error("Credit deduction error: \(error)")
                 }
             } else {
-                session.recordCleanup(fileCount: fileCount)
+                // Local deduction for unlinked accounts
+                session.fileCredits = max(0, session.fileCredits - fileCount)
                 session.save()
+                Logger.shared.info("Local credit deduction: \(fileCount)")
             }
 
             // Update local stats
@@ -179,6 +199,9 @@ class OrganizationViewModel: ObservableObject {
             session.totalFilesProcessed += fileCount
             session.lastCleanupDate = Date()
             session.save()
+
+            // Notify UI to refresh credits from saved state
+            NotificationCenter.default.post(name: .creditsDidChange, object: nil)
 
             // Complete
             currentStep = .completed
@@ -235,6 +258,8 @@ class OrganizationViewModel: ObservableObject {
             Logger.shared.info("User specified folder path: \(userSpecifiedFolderPath ?? "none")")
         }
 
+        Logger.shared.info("Detected language: \(intent.language)")
+
         // Store intent for later use
         self.organizationPlan = OrganizationPlan(
             sourceFolder: URL(fileURLWithPath: "/tmp"),
@@ -243,7 +268,8 @@ class OrganizationViewModel: ObservableObject {
             fileAssignments: [:],
             suggestedFolderStructure: [:],
             mode: intent.mode,
-            fileLabels: [:]
+            fileLabels: [:],
+            language: intent.language
         )
     }
 
@@ -366,8 +392,8 @@ class OrganizationViewModel: ObservableObject {
             // Prepare for API
             let imageData = encodedImages.map { (filename: $0.url.lastPathComponent, base64: $0.base64) }
 
-            // Generate labels
-            let results = try await apiService.generateLabels(imageData, labelStyle: plan.criteria)
+            // Generate labels (with language support)
+            let results = try await apiService.generateLabels(imageData, labelStyle: plan.criteria, language: plan.language)
 
             // Map results to FileItems
             for file in batch {
@@ -397,7 +423,8 @@ class OrganizationViewModel: ObservableObject {
             fileAssignments: [:],
             suggestedFolderStructure: [:],
             mode: .label,
-            fileLabels: fileLabels
+            fileLabels: fileLabels,
+            language: plan.language
         )
 
         Logger.shared.info("Generated \(fileLabels.count) labels")
@@ -503,7 +530,8 @@ class OrganizationViewModel: ObservableObject {
             fileAssignments: fileAssignments,
             suggestedFolderStructure: categoryCounts,
             mode: .organize,
-            fileLabels: [:]
+            fileLabels: [:],
+            language: plan.language
         )
     }
 
@@ -520,15 +548,20 @@ class OrganizationViewModel: ObservableObject {
             return
         }
 
-        // SIMPLE CHECK: If user has enough local credits, allow it
-        // This prevents paywall from showing when user clearly has credits
+        // Prepare preview data (sample file names and category breakdown)
+        let sampleNames = Array(scannedFiles.prefix(5).map { $0.name })
+        let categoryCounts = organizationPlan?.suggestedFolderStructure ?? [:]
+
+        // If user has enough local credits, allow organization
         if userSession.fileCredits >= totalCount {
             Logger.shared.info("Local credits sufficient: \(userSession.fileCredits) >= \(totalCount)")
             pricingInfo = PricingInfo(
                 totalFiles: totalCount,
                 creditsAvailable: userSession.fileCredits,
                 isFreeTrialEligible: false,
-                reason: "Will use \(totalCount) of \(userSession.fileCredits) credits"
+                reason: "Will use \(totalCount) of \(userSession.fileCredits) credits",
+                sampleFileNames: sampleNames,
+                categoryCounts: categoryCounts
             )
             currentStep = .awaitingConfirmation
             statusMessage = "Review organization plan"
@@ -537,23 +570,7 @@ class OrganizationViewModel: ObservableObject {
             return
         }
 
-        // Free trial check (if never used and within limit)
-        if !userSession.hasUsedFreeCleanup && totalCount <= UserSession.freeCleanupFileLimit {
-            Logger.shared.info("Free trial eligible: \(totalCount) files")
-            pricingInfo = PricingInfo(
-                totalFiles: totalCount,
-                creditsAvailable: userSession.fileCredits,
-                isFreeTrialEligible: true,
-                reason: "Free trial: \(totalCount) of \(UserSession.freeCleanupFileLimit) files"
-            )
-            currentStep = .awaitingConfirmation
-            statusMessage = "Review organization plan"
-            progress = 1.0
-            showPreview = true
-            return
-        }
-
-        // If account is linked, try server check (but with fallback)
+        // If account is linked, try server check
         if userSession.isAccountLinked {
             Task {
                 statusMessage = "Verifying credits..."
@@ -567,27 +584,47 @@ class OrganizationViewModel: ObservableObject {
                             totalFiles: totalCount,
                             creditsAvailable: userSession.fileCredits,
                             isFreeTrialEligible: false,
-                            reason: serverReason ?? "Credits verified"
+                            reason: serverReason ?? "Credits verified",
+                            sampleFileNames: sampleNames,
+                            categoryCounts: categoryCounts
                         )
                         self.currentStep = .awaitingConfirmation
                         self.statusMessage = "Review organization plan"
                         self.progress = 1.0
                         self.showPreview = true
                     } else {
-                        // Server denied - show paywall
+                        // Server denied - show preview with paywall option
                         Logger.shared.info("Server denied: \(serverReason ?? "unknown")")
-                        self.showPaywall = true
-                        self.isOrganizing = false
-                        self.currentStep = .idle
+                        self.pricingInfo = PricingInfo(
+                            totalFiles: totalCount,
+                            creditsAvailable: userSession.fileCredits,
+                            isFreeTrialEligible: false,
+                            reason: serverReason ?? "Credits required",
+                            sampleFileNames: sampleNames,
+                            categoryCounts: categoryCounts
+                        )
+                        self.currentStep = .awaitingConfirmation
+                        self.statusMessage = "Subscribe to organize"
+                        self.progress = 1.0
+                        self.showPreview = true
                     }
                 }
             }
         } else {
-            // No account linked and no credits - show paywall
-            Logger.shared.info("No account linked, no credits, trial used")
-            showPaywall = true
-            isOrganizing = false
-            currentStep = .idle
+            // No account linked and no credits - show preview with paywall option
+            Logger.shared.info("No account linked, no credits - showing preview with subscribe option")
+            pricingInfo = PricingInfo(
+                totalFiles: totalCount,
+                creditsAvailable: 0,
+                isFreeTrialEligible: false,
+                reason: "Subscribe to organize your files",
+                sampleFileNames: sampleNames,
+                categoryCounts: categoryCounts
+            )
+            currentStep = .awaitingConfirmation
+            statusMessage = "Subscribe to organize"
+            progress = 1.0
+            showPreview = true
         }
     }
 

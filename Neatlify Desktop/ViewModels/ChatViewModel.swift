@@ -25,14 +25,15 @@ class ChatViewModel: ObservableObject {
 
     private func addWelcomeMessage() {
         let welcomeText = """
-        Welcome to Neatlify! I can help you organize your files using AI.
+        Welcome to Neatlify! I can help you organize and label your files using AI.
 
         Try saying:
         • "Organize my Downloads by construction trade"
         • "Sort my vacation photos by location"
-        • "Group my receipts by vendor"
+        • "Label my screenshots with descriptive names"
+        • "Rename my construction photos based on what's in them"
 
-        What would you like to organize?
+        What would you like to organize or label?
         """
 
         let welcomeMessage = ChatMessage(
@@ -129,13 +130,19 @@ class ChatViewModel: ObservableObject {
             "organize", "sort", "group", "categorize", "arrange",
             "clean", "tidy", "order", "separate", "classify",
             "move", "rename", "scan", "find and move", "put into folders",
+            // English - labeling actions
+            "label", "label files", "label images", "label photos",
+            "relabel", "name files", "rename files", "tag",
             // English - file references with actions
             "my files", "my photos", "my documents", "my downloads",
             "my desktop", "my pictures", "my screenshots",
-            // German
+            // German - organization
             "organisiere", "organisier", "sortiere", "sortier",
             "gruppiere", "gruppier", "ordne", "räume", "aufräumen",
-            "verschiebe", "verschieben", "umbenennen"
+            "verschiebe", "verschieben", "umbenennen",
+            // German - labeling
+            "beschriften", "beschrifte", "benennen", "benenne",
+            "etikettieren", "etikettiere", "markieren", "markiere"
         ]
 
         let lowercased = message.lowercased()
@@ -176,4 +183,5 @@ class ChatViewModel: ObservableObject {
 
 extension Notification.Name {
     static let startOrganization = Notification.Name("startOrganization")
+    static let creditsDidChange = Notification.Name("creditsDidChange")
 }
