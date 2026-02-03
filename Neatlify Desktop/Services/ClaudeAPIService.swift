@@ -8,14 +8,27 @@
 import Foundation
 
 class ClaudeAPIService {
+    #if APPSTORE
+    // App Store: Use edge function (Anthropic key is server-side)
+    private let baseURL = "https://nlvlwrhayrvberdyjgjx.supabase.co/functions/v1/claude-proxy"
+    #else
+    // DMG: Use direct API
     private let apiKey: String
     private let baseURL = "https://api.anthropic.com/v1/messages"
+    #endif
+
     private let model = "claude-sonnet-4-20250514"
     private let apiVersion = "2023-06-01"
 
+    #if !APPSTORE
     init(apiKey: String = APIKeyManager.getAPIKey()) {
         self.apiKey = apiKey
     }
+    #else
+    init() {
+        // App Store: no API key needed, will use edge function
+    }
+    #endif
 
     // System prompt for chat - tells Claude it's inside the Neatlify app
     private let chatSystemPrompt = """
@@ -450,9 +463,13 @@ class ClaudeAPIService {
 
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
+
+        #if !APPSTORE
+        // Direct API call (DMG)
         urlRequest.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         urlRequest.setValue(apiVersion, forHTTPHeaderField: "anthropic-version")
-        urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
+        #endif
 
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
@@ -503,9 +520,13 @@ class ClaudeAPIService {
 
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
+
+        #if !APPSTORE
+        // Direct API call (DMG)
         urlRequest.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         urlRequest.setValue(apiVersion, forHTTPHeaderField: "anthropic-version")
-        urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
+        #endif
 
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
@@ -557,9 +578,13 @@ class ClaudeAPIService {
 
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
+
+        #if !APPSTORE
+        // Direct API call (DMG)
         urlRequest.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         urlRequest.setValue(apiVersion, forHTTPHeaderField: "anthropic-version")
-        urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
+        #endif
 
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
