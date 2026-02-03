@@ -20,7 +20,7 @@ struct NeatlifyApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(userSession)
-                .frame(minWidth: 800, minHeight: 600)
+                .frame(minWidth: 900, minHeight: 600)
                 .onAppear {
                     // Initialize StoreKit transaction listener for App Store version
                     _ = StoreKitManager.shared

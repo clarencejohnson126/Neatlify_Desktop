@@ -44,6 +44,50 @@ struct ChatView: View {
                     .fill(Color.neatlifyDark.opacity(0.1))
                     .frame(height: 2)
 
+                // Quick action buttons (if no text entered)
+                if viewModel.inputText.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Quick Actions")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.neatlifyDark.opacity(0.6))
+                            .padding(.horizontal, 16)
+                            .padding(.top, 12)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                QuickChatAction(
+                                    title: "By Date",
+                                    icon: "calendar",
+                                    action: { viewModel.inputText = "Organize files by date" }
+                                )
+
+                                QuickChatAction(
+                                    title: "By Type",
+                                    icon: "doc.fill",
+                                    action: { viewModel.inputText = "Organize files by type" }
+                                )
+
+                                QuickChatAction(
+                                    title: "Label Files",
+                                    icon: "tag.fill",
+                                    action: { viewModel.inputText = "Label my files with descriptive names" }
+                                )
+
+                                QuickChatAction(
+                                    title: "By Project",
+                                    icon: "folder.fill",
+                                    action: { viewModel.inputText = "Organize files by project" }
+                                )
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 12)
+                        }
+                        .frame(height: 44)
+                    }
+                    .background(Color.neatlifyBg)
+                }
+
                 HStack(spacing: 12) {
                     // Text input field
                     HStack {
@@ -285,5 +329,38 @@ struct MessageBubbleView: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+}
+
+// MARK: - Quick Chat Action Button
+
+struct QuickChatAction: View {
+    let title: String
+    let icon: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.neatlifyGreen)
+
+                Text(title)
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.neatlifyDark)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(Color.white)
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.neatlifyDark, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .help(title)
     }
 }

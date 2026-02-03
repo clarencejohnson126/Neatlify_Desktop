@@ -198,6 +198,19 @@ class OrganizationViewModel: ObservableObject {
             session.totalCleanupsPerformed += 1
             session.totalFilesProcessed += fileCount
             session.lastCleanupDate = Date()
+
+            // Save organization record to history
+            let record = OrganizationRecord(
+                timestamp: Date(),
+                mode: plan.mode,
+                sourceFolder: selectedFolderURL?.path ?? "Unknown",
+                totalFiles: fileCount,
+                filesProcessed: fileCount,
+                categories: plan.categories,
+                creditsUsed: fileCount,
+                status: .completed
+            )
+            session.saveOrganizationRecord(record)
             session.save()
 
             // Notify UI to refresh credits from saved state
@@ -217,6 +230,22 @@ class OrganizationViewModel: ObservableObject {
     }
 
     func cancelOrganization() {
+        // Record cancelled organization
+        if let plan = organizationPlan, let folderURL = selectedFolderURL {
+            let session = UserSession.load()
+            let record = OrganizationRecord(
+                timestamp: Date(),
+                mode: plan.mode,
+                sourceFolder: folderURL.path,
+                totalFiles: scannedFiles.count,
+                filesProcessed: 0,
+                categories: plan.categories,
+                creditsUsed: 0,
+                status: .cancelled
+            )
+            session.saveOrganizationRecord(record)
+        }
+
         isOrganizing = false
         currentStep = .idle
         showPreview = false

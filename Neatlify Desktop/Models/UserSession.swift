@@ -8,6 +8,67 @@
 import Foundation
 import Security
 
+// MARK: - Organization Record Model
+
+struct OrganizationRecord: Identifiable, Codable {
+    let id: UUID
+    let timestamp: Date
+    let mode: OrganizationMode
+    let sourceFolder: String
+    let totalFiles: Int
+    let filesProcessed: Int
+    let categories: [String]
+    let creditsUsed: Int
+    let status: Status
+
+    enum Status: String, Codable {
+        case completed
+        case failed
+        case cancelled
+    }
+
+    init(
+        id: UUID = UUID(),
+        timestamp: Date = Date(),
+        mode: OrganizationMode,
+        sourceFolder: String,
+        totalFiles: Int,
+        filesProcessed: Int,
+        categories: [String] = [],
+        creditsUsed: Int = 0,
+        status: Status = .completed
+    ) {
+        self.id = id
+        self.timestamp = timestamp
+        self.mode = mode
+        self.sourceFolder = sourceFolder
+        self.totalFiles = totalFiles
+        self.filesProcessed = filesProcessed
+        self.categories = categories
+        self.creditsUsed = creditsUsed
+        self.status = status
+    }
+
+    var displayStatus: String {
+        switch status {
+        case .completed:
+            return "Completed"
+        case .failed:
+            return "Failed"
+        case .cancelled:
+            return "Cancelled"
+        }
+    }
+
+    var displayMode: String {
+        mode == .organize ? "Organized" : "Labeled"
+    }
+
+    var folderName: String {
+        URL(fileURLWithPath: sourceFolder).lastPathComponent
+    }
+}
+
 class UserSession: ObservableObject, Codable {
     @Published var hasCompletedOnboarding: Bool = false
     @Published var fileCredits: Int = 0  // Local cache of credits (server is source of truth)
@@ -15,6 +76,8 @@ class UserSession: ObservableObject, Codable {
     @Published var totalCleanupsPerformed: Int = 0
     @Published var totalFilesProcessed: Int = 0
     @Published var userEmail: String? = nil  // Linked account email for server-side credit checking
+    @Published var userFullName: String? = nil  // User's full name for display
+    @Published var organizationHistory: [OrganizationRecord] = []  // Max 500 records
 
     // Pricing constants
     static let freeCleanupFileLimit = 0  // Free trial disabled - scan free, organize paid
@@ -32,6 +95,8 @@ class UserSession: ObservableObject, Codable {
         case totalCleanupsPerformed
         case totalFilesProcessed
         case userEmail
+        case userFullName
+        case organizationHistory
     }
 
     init() {}
@@ -44,6 +109,8 @@ class UserSession: ObservableObject, Codable {
         totalCleanupsPerformed = try container.decodeIfPresent(Int.self, forKey: .totalCleanupsPerformed) ?? 0
         totalFilesProcessed = try container.decodeIfPresent(Int.self, forKey: .totalFilesProcessed) ?? 0
         userEmail = try container.decodeIfPresent(String.self, forKey: .userEmail) ?? Self.getKeychainString(key: Self.keychainEmailKey)
+        userFullName = try container.decodeIfPresent(String.self, forKey: .userFullName)
+        organizationHistory = try container.decodeIfPresent([OrganizationRecord].self, forKey: .organizationHistory) ?? []
     }
 
     func encode(to encoder: Encoder) throws {
@@ -54,6 +121,19 @@ class UserSession: ObservableObject, Codable {
         try container.encode(totalCleanupsPerformed, forKey: .totalCleanupsPerformed)
         try container.encode(totalFilesProcessed, forKey: .totalFilesProcessed)
         try container.encode(userEmail, forKey: .userEmail)
+        try container.encodeIfPresent(userFullName, forKey: .userFullName)
+        try container.encode(organizationHistory, forKey: .organizationHistory)
+    }
+
+    // MARK: - History Management
+
+    /// Save an organization record to history (max 500 records)
+    func saveOrganizationRecord(_ record: OrganizationRecord) {
+        organizationHistory.insert(record, at: 0)  // Insert at beginning for newest first
+        if organizationHistory.count > 500 {
+            organizationHistory.removeLast()
+        }
+        save()
     }
 
     // MARK: - Account Linking
