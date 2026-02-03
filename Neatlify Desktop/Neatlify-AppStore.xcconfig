@@ -1,0 +1,4 @@
+// App Store build configuration
+// Enables StoreKit, disables Stripe
+
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = APPSTORE

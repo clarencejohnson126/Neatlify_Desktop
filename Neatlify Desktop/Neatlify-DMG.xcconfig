@@ -1,0 +1,4 @@
+// DMG build configuration
+// Enables Stripe, disables StoreKit
+
+SWIFT_ACTIVE_COMPILATION_CONDITIONS =

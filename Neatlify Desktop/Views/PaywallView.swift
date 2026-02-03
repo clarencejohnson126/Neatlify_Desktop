@@ -6,7 +6,10 @@
 //
 
 import SwiftUI
+
+#if APPSTORE
 import StoreKit
+#endif
 
 // Brand colors matching the landing page
 extension Color {
@@ -20,9 +23,11 @@ extension Color {
 struct PaywallView: View {
     @EnvironmentObject var userSession: UserSession
     @Binding var isPresented: Bool
-    @ObservedObject var storeKit = StoreKitManager.shared
 
-    @State private var isAppStore = DistributionDetector.shared.isAppStoreDistribution
+    #if APPSTORE
+    @ObservedObject var storeKit = StoreKitManager.shared
+    #endif
+
     @State private var promoCode: String = ""
     @State private var isRedeemingCode: Bool = false
     @State private var promoMessage: String = ""
@@ -101,12 +106,12 @@ struct PaywallView: View {
                     )
                 }
 
-                // Credit packs - Show StoreKit for App Store, Stripe for DMG
-                if isAppStore {
-                    storeKitSection
-                } else {
-                    stripePacksSection
-                }
+                // Credit packs
+                #if APPSTORE
+                storeKitSection
+                #else
+                stripePacksSection
+                #endif
 
                 // Promo Code Section
                 VStack(spacing: 12) {
@@ -217,15 +222,7 @@ struct PaywallView: View {
         }
     }
 
-    private func purchasePack(_ pack: PaymentService.CreditPack) {
-        // Require account to be linked before purchasing
-        guard userSession.isAccountLinked else {
-            showAccountRequiredAlert = true
-            return
-        }
-        PaymentService.shared.purchasePack(pack)
-    }
-
+    #if APPSTORE
     private func purchaseWithStoreKit(_ product: StoreKit.Product) {
         // Require account to be linked before purchasing
         guard userSession.isAccountLinked else {
@@ -236,6 +233,16 @@ struct PaywallView: View {
             _ = await storeKit.purchase(product)
         }
     }
+    #else
+    private func purchasePack(_ pack: PaymentService.CreditPack) {
+        // Require account to be linked before purchasing
+        guard userSession.isAccountLinked else {
+            showAccountRequiredAlert = true
+            return
+        }
+        PaymentService.shared.purchasePack(pack)
+    }
+    #endif
 
     private func redeemPromoCode() {
         guard !promoCode.isEmpty else { return }
@@ -296,6 +303,7 @@ struct PaywallView: View {
 
 // MARK: - StoreKit Section (App Store)
 
+    #if APPSTORE
     private var storeKitSection: some View {
         VStack(spacing: 16) {
             if storeKit.isLoadingProducts {
@@ -387,9 +395,11 @@ struct PaywallView: View {
             }
         }
     }
+    #endif
 
 // MARK: - Stripe Section
 
+    #if !APPSTORE
     private var stripePacksSection: some View {
         VStack(spacing: 16) {
             CreditPackCard(
@@ -431,6 +441,7 @@ struct PaywallView: View {
             enterpriseButton
         }
     }
+    #endif
 
     // MARK: - Enterprise Button (shared)
 
@@ -475,6 +486,7 @@ struct PaywallView: View {
     }
 }
 
+#if APPSTORE
 struct StoreKitPackCard: View {
     let product: StoreKit.Product?
     let title: String
@@ -568,7 +580,9 @@ struct StoreKitPackCard: View {
         .disabled(isLoading || product == nil)
     }
 }
+#endif
 
+#if !APPSTORE
 struct CreditPackCard: View {
     let title: String
     let files: String
@@ -648,6 +662,7 @@ struct CreditPackCard: View {
         .buttonStyle(.plain)
     }
 }
+#endif
 
 struct FeatureRow: View {
     let icon: String
