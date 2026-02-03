@@ -24,6 +24,13 @@ struct NeatlifyApp: App {
                 .onAppear {
                     // Initialize StoreKit transaction listener for App Store version
                     _ = StoreKitManager.shared
+
+                    // Sync credits from server on app launch to ensure fresh data
+                    if userSession.isAccountLinked {
+                        Task {
+                            await userSession.syncCreditsFromServer()
+                        }
+                    }
                 }
                 .onOpenURL { url in
                     handleIncomingURL(url)
