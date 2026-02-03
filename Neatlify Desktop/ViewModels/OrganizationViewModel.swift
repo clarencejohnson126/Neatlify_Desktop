@@ -412,16 +412,20 @@ class OrganizationViewModel: ObservableObject {
             throw OrganizationError.noFilesFound
         }
 
-        let imageBatches = images.chunked(into: 10)
+        // Use larger batches (50 images) to minimize API calls while respecting token limits
+        // This is a balance: fewer API calls (better performance, lower cost) vs token limits
+        let imageBatches = images.chunked(into: 50)
 
         for (index, batch) in imageBatches.enumerated() {
-            // Encode images
-            let encodedImages = try await ImageProcessor.encodeImages(at: batch.map { $0.url })
+            statusMessage = "Encoding images batch \(index + 1)/\(imageBatches.count)..."
 
-            // Prepare for API
+            // Encode batch images
+            let encodedImages = try await ImageProcessor.encodeImages(at: batch.map { $0.url })
             let imageData = encodedImages.map { (filename: $0.url.lastPathComponent, base64: $0.base64) }
 
-            // Generate labels (with language support)
+            statusMessage = "Generating labels... (batch \(index + 1)/\(imageBatches.count))"
+
+            // Generate labels for this batch (still much more efficient than 1 API call per image)
             let results = try await apiService.generateLabels(imageData, labelStyle: plan.criteria, language: plan.language)
 
             // Map results to FileItems
@@ -434,15 +438,15 @@ class OrganizationViewModel: ObservableObject {
 
             // Update progress
             let batchProgress = Double(index + 1) / Double(imageBatches.count)
-            progress = 0.4 + (batchProgress * 0.5) // 40% to 90%
-            let processedCount = min((index + 1) * 10, images.count)
-            statusMessage = "Generating labels... \(processedCount)/\(images.count)"
+            progress = 0.4 + (batchProgress * 0.5)  // 40% to 90%
 
-            // Small delay between batches
+            // Small delay between batches to avoid overwhelming the system
             if index < imageBatches.count - 1 {
-                try await Task.sleep(nanoseconds: 2_000_000_000)
+                try await Task.sleep(nanoseconds: 500_000_000)  // 0.5 second delay
             }
         }
+
+        progress = 0.9
 
         // Create final plan with labels
         self.organizationPlan = OrganizationPlan(
@@ -476,80 +480,49 @@ class OrganizationViewModel: ObservableObject {
         let images = scannedFiles.filter { $0.fileType == .image }
         let pdfs = scannedFiles.filter { $0.fileType == .pdf }
 
-        // Process images in batches of 10
+        guard !images.isEmpty || !pdfs.isEmpty else {
+            throw OrganizationError.noFilesFound
+        }
+
+        // Encode all images upfront
+        var allImageData: [(filename: String, base64: String)] = []
         if !images.isEmpty {
-            statusMessage = "Analyzing \(images.count) images..."
-
-            let imageBatches = images.chunked(into: 10)
-
-            for (index, batch) in imageBatches.enumerated() {
-                let encodedImages = try await ImageProcessor.encodeImages(at: batch.map { $0.url })
-                let imageData = encodedImages.map { (filename: $0.url.lastPathComponent, base64: $0.base64) }
-
-                let results = try await apiService.analyzeImages(
-                    imageData,
-                    criteria: plan.criteria,
-                    categories: plan.categories
-                )
-
-                for file in batch {
-                    if let category = results[file.name] {
-                        fileAssignments[file.id] = category
-                        categoryCounts[category, default: 0] += 1
-                    }
-                }
-
-                let batchProgress = Double(index + 1) / Double(imageBatches.count)
-                progress = 0.4 + (batchProgress * 0.3)
-                let processedCount = min((index + 1) * 10, images.count)
-                statusMessage = "Analyzing images... \(processedCount)/\(images.count)"
-
-                if index < imageBatches.count - 1 {
-                    try await Task.sleep(nanoseconds: 2_000_000_000)
-                }
-            }
+            let encodedImages = try await ImageProcessor.encodeImages(at: images.map { $0.url })
+            allImageData = encodedImages.map { (filename: $0.url.lastPathComponent, base64: $0.base64) }
         }
 
-        // Process PDFs in batches of 5
+        // Extract text from all PDFs upfront
+        var allTextData: [(filename: String, content: String)] = []
         if !pdfs.isEmpty {
-            statusMessage = "Analyzing \(pdfs.count) PDFs..."
-
-            let pdfBatches = pdfs.chunked(into: 5)
-
-            for (index, batch) in pdfBatches.enumerated() {
-                var textData: [(filename: String, content: String)] = []
-
-                for pdf in batch {
-                    if let text = PDFProcessor.extractText(from: pdf.url, maxPages: 5) {
-                        textData.append((filename: pdf.name, content: text))
-                    }
-                }
-
-                if !textData.isEmpty {
-                    let results = try await apiService.analyzeText(
-                        textData,
-                        criteria: plan.criteria,
-                        categories: plan.categories
-                    )
-
-                    for file in batch {
-                        if let category = results[file.name] {
-                            fileAssignments[file.id] = category
-                            categoryCounts[category, default: 0] += 1
-                        }
-                    }
-                }
-
-                let batchProgress = Double(index + 1) / Double(pdfBatches.count)
-                progress = 0.7 + (batchProgress * 0.2)
-                let processedCount = min((index + 1) * 5, pdfs.count)
-                statusMessage = "Analyzing PDFs... \(processedCount)/\(pdfs.count)"
-
-                if index < pdfBatches.count - 1 {
-                    try await Task.sleep(nanoseconds: 2_000_000_000)
+            for pdf in pdfs {
+                if let text = PDFProcessor.extractText(from: pdf.url, maxPages: 5) {
+                    allTextData.append((filename: pdf.name, content: text))
                 }
             }
         }
+
+        statusMessage = "Analyzing \(images.count) images and \(pdfs.count) documents..."
+        progress = 0.4
+
+        // CRITICAL OPTIMIZATION: Process ALL files in a single API call instead of batching
+        // This reduces from potentially many calls down to just 1-2 calls max
+        let results = try await apiService.analyzeMixedFiles(
+            images: allImageData,
+            texts: allTextData,
+            criteria: plan.criteria,
+            categories: plan.categories
+        )
+
+        // Map results back to file IDs
+        for file in scannedFiles {
+            if let category = results[file.name] {
+                fileAssignments[file.id] = category
+                categoryCounts[category, default: 0] += 1
+            }
+        }
+
+        progress = 0.9
+        statusMessage = "Categorization complete"
 
         // Create final plan
         self.organizationPlan = OrganizationPlan(

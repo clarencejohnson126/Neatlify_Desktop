@@ -12,8 +12,15 @@ class ClaudeAPIService {
     private let baseURL = "https://nlvlwrhayrvberdyjgjx.supabase.co/functions/v1/claude-proxy"
     private let model = "claude-sonnet-4-20250514"
 
+    // Configure URLSession with explicit timeout for slow edge functions
+    private let urlSession: URLSession
+
     init() {
         // No API key needed - all calls go through secure edge function
+        var config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 120  // 2 minutes for individual requests
+        config.timeoutIntervalForResource = 300  // 5 minutes for overall resource
+        self.urlSession = URLSession(configuration: config)
     }
 
     // System prompt for chat - tells Claude it's inside the Neatlify app
@@ -59,7 +66,7 @@ class ClaudeAPIService {
         let response = try await makeRequestWithSystem(request)
         Logger.shared.logAPICall("sendMessage", tokensUsed: response.usage.outputTokens)
 
-        return response.content.first?.text ?? ""
+        return response.textContent ?? ""
     }
 
     // MARK: - Agent SDK Pattern for Intent Parsing
@@ -149,38 +156,20 @@ class ClaudeAPIService {
 
         let response = try await makeToolRequest(request)
 
-        // Log all content for debugging
-        Logger.shared.debug("API Response content count: \(response.content.count)")
-        for (index, content) in response.content.enumerated() {
-            switch content {
-            case .text(let text):
-                Logger.shared.debug("Content[\(index)]: text = \(text)")
-            case .toolUse(let data):
-                Logger.shared.debug("Content[\(index)]: tool_use = \(data.name)")
-            }
-        }
-
         // Parse tool use from response
-        guard let toolUse = response.content.first(where: {
-            if case .toolUse = $0 { return true }
-            return false
-        }) else {
-            Logger.shared.error("No tool_use found in response. Content types: \(response.content.map { type(of: $0) })")
+        guard let toolCall = response.toolCalls?.first else {
+            Logger.shared.error("No tool_use found in response")
             throw APIError.invalidResponse
         }
 
-        if case .toolUse(let toolData) = toolUse {
-            Logger.shared.debug("Intent extraction tool response: \(toolData.input)")
+        Logger.shared.debug("Intent extraction tool response: \(toolCall.arguments)")
 
-            let jsonData = try JSONSerialization.data(withJSONObject: toolData.input)
-            let intent = try JSONDecoder().decode(OrganizationIntent.self, from: jsonData)
+        let jsonData = try JSONSerialization.data(withJSONObject: toolCall.arguments)
+        let intent = try JSONDecoder().decode(OrganizationIntent.self, from: jsonData)
 
-            Logger.shared.info("✅ Intent parsed successfully: folder=\(intent.folder), criteria=\(intent.criteria), categories=\(intent.suggestedCategories.count)")
+        Logger.shared.info("✅ Intent parsed successfully: folder=\(intent.folder), criteria=\(intent.criteria), categories=\(intent.suggestedCategories.count)")
 
-            return intent
-        }
-
-        throw APIError.invalidResponse
+        return intent
     }
 
     // MARK: - Vision Methods
@@ -206,7 +195,7 @@ class ClaudeAPIService {
         let response = try await makeRequest(request)
         Logger.shared.logAPICall("analyzeImage", tokensUsed: response.usage.outputTokens)
 
-        return response.content.first?.text ?? ""
+        return response.textContent ?? ""
     }
 
     // Batch analyze multiple images
@@ -253,7 +242,7 @@ class ClaudeAPIService {
         let response = try await makeRequest(request)
         Logger.shared.logAPICall("analyzeImages", tokensUsed: response.usage.outputTokens)
 
-        guard let responseText = response.content.first?.text else {
+        guard let responseText = response.textContent else {
             throw APIError.invalidResponse
         }
 
@@ -399,7 +388,7 @@ class ClaudeAPIService {
         let response = try await makeRequest(request)
         Logger.shared.logAPICall("generateLabels", tokensUsed: response.usage.outputTokens)
 
-        guard let responseText = response.content.first?.text else {
+        guard let responseText = response.textContent else {
             throw APIError.invalidResponse
         }
 
@@ -411,6 +400,87 @@ class ClaudeAPIService {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         Logger.shared.debug("Label generation response: \(cleanedResponse)")
+
+        guard let data = cleanedResponse.data(using: .utf8),
+              let result = try? JSONDecoder().decode([String: String].self, from: data) else {
+            throw APIError.invalidResponse
+        }
+
+        return result
+    }
+
+    // Batch analyze mixed file types (images and PDFs) in a SINGLE API call
+    // This is the main optimization: instead of separate calls for images vs PDFs,
+    // we send everything together to minimize API calls
+    func analyzeMixedFiles(
+        images: [(filename: String, base64: String)],
+        texts: [(filename: String, content: String)],
+        criteria: String,
+        categories: [String]
+    ) async throws -> [String: String] {
+        let categoriesList = categories.joined(separator: ", ")
+
+        // Build content array with all files
+        var contentItems: [ContentItem] = []
+
+        // Add all images
+        for (filename, base64) in images {
+            contentItems.append(.image(source: ImageSource(type: "base64", mediaType: "image/jpeg", data: base64)))
+            contentItems.append(.text("Image: \(filename)"))
+        }
+
+        // Add all text content
+        for (filename, content) in texts {
+            let preview = String(content.prefix(500))  // Limit to first 500 chars
+            contentItems.append(.text("Document: \(filename)\nContent: \(preview)"))
+        }
+
+        // Add the categorization prompt
+        let prompt = """
+        You are categorizing \(images.count) images and \(texts.count) documents.
+
+        Categorization criteria: \(criteria)
+        Available categories: \(categoriesList)
+
+        For EACH file (both images and documents), analyze its content and assign the most appropriate category.
+        If uncertain, use "uncategorized".
+
+        Return ONLY valid JSON with this structure (no additional text):
+        {
+          "filename1.jpg": "category",
+          "filename2.pdf": "category"
+        }
+
+        IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.
+        """
+
+        contentItems.append(.text(prompt))
+
+        let messages = [
+            ClaudeMessage(role: "user", content: contentItems)
+        ]
+
+        let request = ClaudeRequest(
+            model: model,
+            maxTokens: 4096,
+            messages: messages
+        )
+
+        let response = try await makeRequest(request)
+        Logger.shared.logAPICall("analyzeMixedFiles", tokensUsed: response.usage.outputTokens)
+
+        guard let responseText = response.textContent else {
+            throw APIError.invalidResponse
+        }
+
+        // Clean up response
+        let cleanedResponse = responseText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "```json", with: "")
+            .replacingOccurrences(of: "```", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        Logger.shared.debug("Mixed files analysis response: \(cleanedResponse)")
 
         guard let data = cleanedResponse.data(using: .utf8),
               let result = try? JSONDecoder().decode([String: String].self, from: data) else {
@@ -455,7 +525,7 @@ class ClaudeAPIService {
         encoder.keyEncodingStrategy = .convertToSnakeCase
         urlRequest.httpBody = try encoder.encode(request)
 
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        let (data, response) = try await urlSession.data(for: urlRequest)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
@@ -506,7 +576,7 @@ class ClaudeAPIService {
         encoder.keyEncodingStrategy = .convertToSnakeCase
         urlRequest.httpBody = try encoder.encode(request)
 
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        let (data, response) = try await urlSession.data(for: urlRequest)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
@@ -558,7 +628,7 @@ class ClaudeAPIService {
         encoder.keyEncodingStrategy = .convertToSnakeCase
         urlRequest.httpBody = try encoder.encode(request)
 
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        let (data, response) = try await urlSession.data(for: urlRequest)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
@@ -704,100 +774,14 @@ class ClaudeAPIService {
 
     private struct ClaudeToolResponse: Codable {
         let id: String
-        let type: String
-        let role: String
-        let content: [ToolResponseContent]
-        let model: String
-        let stopReason: String?
+        let textContent: String?
+        let toolCalls: [ToolCall]?
         let usage: Usage
+        let stopReason: String?
 
         struct Usage: Codable {
             let inputTokens: Int
             let outputTokens: Int
-        }
-    }
-
-    private enum ToolResponseContent: Codable {
-        case text(String)
-        case toolUse(ToolUseData)
-
-        struct ToolUseData: Codable {
-            let id: String
-            let name: String
-            let input: [String: Any]
-
-            enum CodingKeys: String, CodingKey {
-                case id, name, input
-            }
-
-            init(id: String, name: String, input: [String: Any]) {
-                self.id = id
-                self.name = name
-                self.input = input
-            }
-
-            init(from decoder: Decoder) throws {
-                let container = try decoder.container(keyedBy: CodingKeys.self)
-                id = try container.decode(String.self, forKey: .id)
-                name = try container.decode(String.self, forKey: .name)
-
-                // Decode input as dictionary
-                let inputData = try container.decode(AnyCodable.self, forKey: .input)
-                if let dict = inputData.value as? [String: Any] {
-                    input = dict
-                } else {
-                    throw DecodingError.dataCorruptedError(forKey: .input, in: container, debugDescription: "Input is not a dictionary")
-                }
-            }
-
-            func encode(to encoder: Encoder) throws {
-                var container = encoder.container(keyedBy: CodingKeys.self)
-                try container.encode(id, forKey: .id)
-                try container.encode(name, forKey: .name)
-                try container.encode(AnyCodable(input), forKey: .input)
-            }
-        }
-
-        enum CodingKeys: String, CodingKey {
-            case type, text, id, name, input
-        }
-
-        init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            let type = try container.decode(String.self, forKey: .type)
-
-            switch type {
-            case "text":
-                let text = try container.decode(String.self, forKey: .text)
-                self = .text(text)
-            case "tool_use":
-                let id = try container.decode(String.self, forKey: .id)
-                let name = try container.decode(String.self, forKey: .name)
-                let inputData = try container.decode(AnyCodable.self, forKey: .input)
-                if let dict = inputData.value as? [String: Any] {
-                    let toolData = ToolUseData(id: id, name: name, input: dict)
-                    self = .toolUse(toolData)
-                } else {
-                    throw DecodingError.dataCorruptedError(forKey: .input, in: container, debugDescription: "Invalid tool use input")
-                }
-            default:
-                throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "Unknown content type: \(type)")
-            }
-        }
-
-        func encode(to encoder: Encoder) throws {
-            var container = encoder.container(keyedBy: CodingKeys.self)
-
-            switch self {
-            case .text(let text):
-                try container.encode("text", forKey: .type)
-                try container.encode(text, forKey: .text)
-            case .toolUse(let data):
-                try container.encode("tool_use", forKey: .type)
-                try container.encode(data.id, forKey: .id)
-                try container.encode(data.name, forKey: .name)
-                try container.encode(AnyCodable(data.input), forKey: .input)
-            }
         }
     }
 
@@ -901,19 +885,48 @@ class ClaudeAPIService {
         let data: String
     }
 
+    private struct ToolCall: Codable {
+        let id: String
+        let name: String
+        let arguments: [String: Any]
+
+        enum CodingKeys: String, CodingKey {
+            case id, name, arguments
+        }
+
+        init(id: String, name: String, arguments: [String: Any]) {
+            self.id = id
+            self.name = name
+            self.arguments = arguments
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(String.self, forKey: .id)
+            name = try container.decode(String.self, forKey: .name)
+
+            let argsData = try container.decode(AnyCodable.self, forKey: .arguments)
+            if let dict = argsData.value as? [String: Any] {
+                arguments = dict
+            } else {
+                arguments = [:]
+            }
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(id, forKey: .id)
+            try container.encode(name, forKey: .name)
+            try container.encode(AnyCodable(arguments), forKey: .arguments)
+        }
+    }
+
     private struct ClaudeResponse: Codable {
         let id: String
-        let type: String
-        let role: String
-        let content: [ResponseContent]
-        let model: String
-        let stopReason: String?
+        let textContent: String?
+        let toolCalls: [ToolCall]?
         let usage: Usage
-
-        struct ResponseContent: Codable {
-            let type: String
-            let text: String?
-        }
+        let stopReason: String?
 
         struct Usage: Codable {
             let inputTokens: Int

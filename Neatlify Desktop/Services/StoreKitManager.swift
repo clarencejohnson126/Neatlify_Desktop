@@ -19,6 +19,11 @@ class StoreKitManager: ObservableObject {
 
     private var transactionListenerTask: Task<Void, Never>?
 
+    // Retry configuration
+    private let maxRetries = 3
+    private let initialBackoffSeconds = 1.0
+    private let maxBackoffSeconds = 32.0
+
     private init() {
         // Start listening for transactions immediately
         transactionListenerTask = Task {
@@ -38,6 +43,7 @@ class StoreKitManager: ObservableObject {
     // MARK: - Product Loading
 
     /// Loads all StoreKit products from App Store Connect.
+    /// Automatically retries on transient network failures.
     @MainActor
     func loadProducts() async {
         isLoadingProducts = true
@@ -50,7 +56,10 @@ class StoreKitManager: ObservableObject {
                 Self.businessProductId
             ]
 
-            let products = try await Product.products(for: productIds)
+            let products = try await executeWithRetry {
+                try await Product.products(for: productIds)
+            }
+
             self.products = products.sorted { a, b in
                 // Sort by display order: starter, pro, business
                 let order = [Self.starterProductId, Self.proProductId, Self.businessProductId]
@@ -126,6 +135,7 @@ class StoreKitManager: ObservableObject {
 
     /// Syncs a verified transaction with the Supabase backend.
     /// Verifies the JWS signature and grants credits.
+    /// Automatically retries on transient network failures.
     private func syncTransactionWithServer(_ transaction: Transaction) async {
         guard let userSession = await getUserSession() else {
             print("Cannot sync transaction: no user session")
@@ -138,13 +148,15 @@ class StoreKitManager: ObservableObject {
         }
 
         do {
-            let result = try await SupabaseService.shared.verifyAppleTransaction(
-                transactionId: String(transaction.id),
-                originalTransactionId: String(transaction.originalID),
-                productId: transaction.productID,
-                purchaseDate: transaction.purchaseDate,
-                userEmail: userEmail
-            )
+            let result = try await executeWithRetry {
+                try await SupabaseService.shared.verifyAppleTransaction(
+                    transactionId: String(transaction.id),
+                    originalTransactionId: String(transaction.originalID),
+                    productId: transaction.productID,
+                    purchaseDate: transaction.purchaseDate,
+                    userEmail: userEmail
+                )
+            }
 
             // Update local user session
             userSession.fileCredits = result.creditsTotal
@@ -161,6 +173,7 @@ class StoreKitManager: ObservableObject {
 
     /// Restores previously purchased products from the user's account.
     /// Called when user reinstalls the app or signs into a new device.
+    /// Automatically retries on transient network failures.
     func restorePurchases() async {
         guard let userSession = await getUserSession() else {
             print("Cannot restore purchases: no user session")
@@ -185,13 +198,15 @@ class StoreKitManager: ObservableObject {
 
                     // Only process non-revoked transactions
                     if transaction.revocationDate == nil {
-                        let syncResult = try await SupabaseService.shared.verifyAppleTransaction(
-                            transactionId: String(transaction.id),
-                            originalTransactionId: String(transaction.originalID),
-                            productId: transaction.productID,
-                            purchaseDate: transaction.purchaseDate,
-                            userEmail: userEmail
-                        )
+                        let syncResult = try await executeWithRetry {
+                            try await SupabaseService.shared.verifyAppleTransaction(
+                                transactionId: String(transaction.id),
+                                originalTransactionId: String(transaction.originalID),
+                                productId: transaction.productID,
+                                purchaseDate: transaction.purchaseDate,
+                                userEmail: userEmail
+                            )
+                        }
                         creditsGranted += syncResult.creditsAdded
                         await transaction.finish()
                     }
@@ -226,17 +241,64 @@ class StoreKitManager: ObservableObject {
         // For now, we'll load it from storage
         return UserSession.load()
     }
+
+    /// Determines if an error is transient and should be retried.
+    private func isTransientError(_ error: Error) -> Bool {
+        if let error = error as? URLError {
+            switch error.code {
+            case .timedOut, .networkConnectionLost, .notConnectedToInternet:
+                return true
+            default:
+                return false
+            }
+        }
+        return false
+    }
+
+    /// Executes an async operation with exponential backoff retry logic.
+    /// Automatically retries on transient errors up to maxRetries times.
+    private func executeWithRetry<T>(_ operation: () async throws -> T) async throws -> T {
+        var lastError: Error?
+
+        for attempt in 0..<maxRetries {
+            do {
+                return try await operation()
+            } catch {
+                lastError = error
+
+                // Don't retry if error is not transient or this was the last attempt
+                guard isTransientError(error) && attempt < maxRetries - 1 else {
+                    throw error
+                }
+
+                // Calculate exponential backoff with jitter
+                let backoff = pow(2.0, Double(attempt)) * initialBackoffSeconds
+                let jitter = Double.random(in: 0..<0.1) * backoff
+                let delaySeconds = min(backoff + jitter, maxBackoffSeconds)
+
+                print("Transient error (attempt \(attempt + 1)/\(maxRetries)): \(error.localizedDescription). Retrying in \(String(format: "%.1f", delaySeconds))s")
+
+                // Sleep before retrying
+                try await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
+            }
+        }
+
+        throw lastError ?? StoreKitError.retryExhausted
+    }
 }
 
 // MARK: - Error Handling
 
 enum StoreKitError: LocalizedError {
     case unverifiedTransaction
+    case retryExhausted
 
     var errorDescription: String? {
         switch self {
         case .unverifiedTransaction:
             return "Transaction verification failed"
+        case .retryExhausted:
+            return "Failed after maximum retry attempts. Please check your network connection."
         }
     }
 }
