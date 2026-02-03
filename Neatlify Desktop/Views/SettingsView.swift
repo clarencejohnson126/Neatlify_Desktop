@@ -672,7 +672,7 @@ struct VerifyPaymentView: View {
                     HStack {
                         Image(systemName: "key")
                             .foregroundColor(.neatlifyDark.opacity(0.4))
-                        TextField("cs_test_...", text: $sessionIdInput)
+                        TextField("Stripe session ID", text: $sessionIdInput)
                             .textFieldStyle(.plain)
                             .font(.system(.body, design: .monospaced))
                     }

@@ -11,17 +11,6 @@ import AppKit
 class PaymentService {
     static let shared = PaymentService()
 
-    // Stripe Payment Links (TEST MODE - switch to live for production)
-    // Note: These need to be updated in Stripe Dashboard to redirect to your success page
-    // Success page should redirect to: neatlify://activate?session_id={CHECKOUT_SESSION_ID}
-    private let starterPackURL = "https://buy.stripe.com/test_cNi9ATdsK9vafN67l06EU00"
-    private let proPackURL = "https://buy.stripe.com/test_dRm6oH88qgXC30keNs6EU01"
-    private let businessPackURL = "https://buy.stripe.com/test_6oU14nagy7n20ScgVA6EU02"
-
-    // Stripe API for creating checkout sessions with custom redirect
-    // Set via environment variable or replace for production
-    private let stripeSecretKey = ProcessInfo.processInfo.environment["STRIPE_SECRET_KEY"] ?? "YOUR_STRIPE_SECRET_KEY"
-
     private init() {}
 
     // MARK: - Credit Packs

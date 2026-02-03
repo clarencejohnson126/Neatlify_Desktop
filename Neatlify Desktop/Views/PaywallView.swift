@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import StoreKit
 
 // Brand colors matching the landing page
 extension Color {
@@ -19,7 +20,9 @@ extension Color {
 struct PaywallView: View {
     @EnvironmentObject var userSession: UserSession
     @Binding var isPresented: Bool
+    @ObservedObject var storeKit = StoreKitManager.shared
 
+    @State private var isAppStore = DistributionDetector.shared.isAppStoreDistribution
     @State private var promoCode: String = ""
     @State private var isRedeemingCode: Bool = false
     @State private var promoMessage: String = ""
@@ -98,8 +101,12 @@ struct PaywallView: View {
                     )
                 }
 
-                // Credit packs
-                stripePacksSection
+                // Credit packs - Show StoreKit for App Store, Stripe for DMG
+                if isAppStore {
+                    storeKitSection
+                } else {
+                    stripePacksSection
+                }
 
                 // Promo Code Section
                 VStack(spacing: 12) {
@@ -219,6 +226,16 @@ struct PaywallView: View {
         PaymentService.shared.purchasePack(pack)
     }
 
+    private func purchaseWithStoreKit(_ product: StoreKit.Product) {
+        // Require account to be linked before purchasing
+        guard userSession.isAccountLinked else {
+            showAccountRequiredAlert = true
+            return
+        }
+        Task {
+            _ = await storeKit.purchase(product)
+        }
+    }
 
     private func redeemPromoCode() {
         guard !promoCode.isEmpty else { return }
@@ -273,6 +290,100 @@ struct PaywallView: View {
                     promoSuccess = false
                     isRedeemingCode = false
                 }
+            }
+        }
+    }
+
+// MARK: - StoreKit Section (App Store)
+
+    private var storeKitSection: some View {
+        VStack(spacing: 16) {
+            if storeKit.isLoadingProducts {
+                HStack {
+                    ProgressView()
+                    Text("Loading products...")
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.neatlifyDark.opacity(0.6))
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+            } else {
+                // Starter Pack
+                StoreKitPackCard(
+                    product: storeKit.products.first(where: { $0.id == "com.neatlify.Desktop.starter" }),
+                    title: "Starter",
+                    files: "100 files",
+                    credits: 100,
+                    perFile: "€0.05/file",
+                    badge: nil,
+                    color: .neatlifyDark,
+                    isPopular: false,
+                    isLoading: storeKit.purchaseInProgress
+                ) {
+                    if let product = storeKit.products.first(where: { $0.id == "com.neatlify.Desktop.starter" }) {
+                        purchaseWithStoreKit(product)
+                    }
+                }
+
+                // Pro Pack
+                StoreKitPackCard(
+                    product: storeKit.products.first(where: { $0.id == "com.neatlify.Desktop.pro" }),
+                    title: "Pro",
+                    files: "1,000 files",
+                    credits: 1000,
+                    perFile: "€0.03/file",
+                    badge: "Save 40%",
+                    color: .neatlifyGreen,
+                    isPopular: true,
+                    isLoading: storeKit.purchaseInProgress
+                ) {
+                    if let product = storeKit.products.first(where: { $0.id == "com.neatlify.Desktop.pro" }) {
+                        purchaseWithStoreKit(product)
+                    }
+                }
+
+                // Business Pack
+                StoreKitPackCard(
+                    product: storeKit.products.first(where: { $0.id == "com.neatlify.Desktop.business" }),
+                    title: "Business",
+                    files: "10,000 files",
+                    credits: 10000,
+                    perFile: "€0.02/file",
+                    badge: "Save 60%",
+                    color: .neatlifyRed,
+                    isPopular: false,
+                    isLoading: storeKit.purchaseInProgress
+                ) {
+                    if let product = storeKit.products.first(where: { $0.id == "com.neatlify.Desktop.business" }) {
+                        purchaseWithStoreKit(product)
+                    }
+                }
+
+                enterpriseButton
+
+                // Restore Purchases Button
+                Button(action: {
+                    Task {
+                        await storeKit.restorePurchases()
+                    }
+                }) {
+                    Text("Restore Purchases")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.neatlifyGreen)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 8)
+            }
+
+            if let error = storeKit.lastError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.neatlifyRed)
+                    .padding(8)
+                    .background(Color.neatlifyRed.opacity(0.1))
+                    .cornerRadius(4)
             }
         }
     }
@@ -361,6 +472,100 @@ struct PaywallView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+struct StoreKitPackCard: View {
+    let product: StoreKit.Product?
+    let title: String
+    let files: String
+    let credits: Int
+    let perFile: String
+    let badge: String?
+    let color: Color
+    let isPopular: Bool
+    let isLoading: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                // Popular badge
+                if isPopular {
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Text("⭐ POPULAR")
+                                .font(.caption2)
+                                .fontWeight(.black)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.neatlifyRed)
+                                .cornerRadius(8)
+                                .offset(x: -8, y: -8)
+                        }
+                        Spacer()
+                    }
+                }
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 10) {
+                            Text(title)
+                                .font(.title3)
+                                .fontWeight(.black)
+                                .foregroundColor(.neatlifyDark)
+
+                            if let badge = badge {
+                                Text(badge)
+                                    .font(.caption2)
+                                    .fontWeight(.black)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color.neatlifyGreen)
+                                    .cornerRadius(4)
+                            }
+                        }
+
+                        Text("\(files) • \(perFile)")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.neatlifyDark.opacity(0.6))
+                    }
+
+                    Spacer()
+
+                    if isLoading {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else if let product = product {
+                        VStack(spacing: 2) {
+                            Text(product.displayPrice)
+                                .font(.system(size: 24, weight: .black))
+                                .foregroundColor(color)
+                        }
+                    } else {
+                        Text("—")
+                            .font(.system(size: 24, weight: .black))
+                            .foregroundColor(.gray)
+                    }
+                }
+                .padding(20)
+            }
+            .background(
+                isPopular ? Color.neatlifyYellow.opacity(0.3) : Color.white
+            )
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.neatlifyDark, lineWidth: isPopular ? 3 : 2)
+            )
+            .shadow(color: isPopular ? Color.neatlifyDark.opacity(0.2) : .clear, radius: 0, x: 4, y: 4)
+        }
+        .buttonStyle(.plain)
+        .disabled(isLoading || product == nil)
     }
 }
 

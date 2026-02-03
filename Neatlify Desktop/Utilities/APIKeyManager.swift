@@ -19,13 +19,9 @@ class APIKeyManager {
     // XOR cipher key
     private static let cipherKey: [UInt8] = [0x4E, 0x65, 0x61, 0x74, 0x6C, 0x69, 0x66, 0x79, 0x41, 0x49]
 
-    // Fallback key (set via environment variable ANTHROPIC_API_KEY)
-    // For production, use obfuscated encodedKeyBytes above
-    private static let devKey = "YOUR_ANTHROPIC_API_KEY"
-
     static func getAPIKey() -> String {
-        // Check environment variable first (for development)
-        if let key = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"] {
+        // Check environment variable first (for development and App Store builds)
+        if let key = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"], !key.isEmpty {
             return key
         }
 
@@ -34,8 +30,9 @@ class APIKeyManager {
             return decodeKey(encodedKeyBytes)
         }
 
-        // Fallback to dev key (remove for production!)
-        return devKey
+        // No API key found - this will cause crashes during file analysis
+        Logger.shared.error("CRITICAL: Anthropic API key not configured. File organization will fail.")
+        return ""
     }
 
     // XOR decode

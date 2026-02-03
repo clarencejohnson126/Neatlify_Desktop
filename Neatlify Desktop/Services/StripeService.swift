@@ -10,16 +10,25 @@ import Foundation
 class StripeService {
     static let shared = StripeService()
 
-    // Stripe API key (read-only for checkout session verification)
-    // Set via environment variable or replace for production
-    private let secretKey = ProcessInfo.processInfo.environment["STRIPE_SECRET_KEY"] ?? "YOUR_STRIPE_SECRET_KEY"
+    // Stripe API key - MUST be set via Supabase Edge Function environment variable
+    // For local testing with DMG builds, configure via Supabase dashboard
+    private let secretKey: String
 
     private let baseURL = "https://api.stripe.com/v1"
 
     // Track used session IDs to prevent replay attacks
     private let usedSessionsKey = "UsedStripeSessions"
 
-    private init() {}
+    private init() {
+        if let key = ProcessInfo.processInfo.environment["STRIPE_SECRET_KEY"], !key.isEmpty {
+            self.secretKey = key
+        } else {
+            // Stripe key will be used server-side via Supabase edge functions for DMG builds
+            // This service is mainly for verification. Production uses create-checkout function.
+            self.secretKey = ""
+            Logger.shared.warning("Stripe secret key not configured. Payment verification will fail unless using Supabase edge functions.")
+        }
+    }
 
     // MARK: - Verify Checkout Session
 
