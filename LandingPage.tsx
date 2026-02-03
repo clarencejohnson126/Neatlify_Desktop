@@ -122,6 +122,19 @@ const LandingPage: React.FC = () => {
 
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
+  const handleDownload = (e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
+    // Require login first
+    if (!user) {
+      e.preventDefault();
+      openAuth('signup');
+      return;
+    }
+    // User is logged in, allow download
+    if (e.currentTarget instanceof HTMLAnchorElement) {
+      window.location.href = e.currentTarget.href;
+    }
+  };
+
   const handleCheckout = async (productType: 'starter' | 'pro' | 'business') => {
     // Require login first
     if (!user) {
@@ -251,7 +264,11 @@ const LandingPage: React.FC = () => {
                 {t.hero.useCases}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                <a href="/downloads/Neatlify.dmg" className="bg-[#29AB87] text-white px-8 py-4 rounded-full text-xl font-bold sketch-border cartoon-shadow-hover transition-all text-center pulse">
+                <a
+                  href="/downloads/Neatlify.dmg"
+                  onClick={handleDownload}
+                  className="bg-[#29AB87] text-white px-8 py-4 rounded-full text-xl font-bold sketch-border cartoon-shadow-hover transition-all text-center pulse cursor-pointer"
+                >
                   {t.hero.cta}
                 </a>
                 <a href="#how" className="px-8 py-4 rounded-full text-xl font-bold sketch-border bg-white text-[#2D3436] cartoon-shadow-hover transition-all text-center">
@@ -606,7 +623,11 @@ const LandingPage: React.FC = () => {
             <h2 className="text-4xl md:text-6xl font-black mb-6">{t.finalCta.title}</h2>
             <p className="text-xl opacity-80 mb-10">{t.finalCta.subtitle}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-              <a href="/downloads/Neatlify.dmg" className="bg-[#29AB87] text-white px-10 py-5 rounded-full text-xl font-black sketch-border cartoon-shadow-hover transition-all pulse">
+              <a
+                href="/downloads/Neatlify.dmg"
+                onClick={handleDownload}
+                className="bg-[#29AB87] text-white px-10 py-5 rounded-full text-xl font-black sketch-border cartoon-shadow-hover transition-all pulse cursor-pointer"
+              >
                 {t.finalCta.cta}
               </a>
               <a href="#pricing" className="bg-white text-[#2D3436] px-10 py-5 rounded-full text-xl font-black sketch-border cartoon-shadow-hover transition-all">
