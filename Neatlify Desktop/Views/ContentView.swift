@@ -849,29 +849,31 @@ struct DashboardTabView: View {
                                         .frame(width: 24)
 
                                     // Activity info
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        HStack {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        HStack(spacing: 8) {
                                             Text(record.displayMode)
-                                                .font(.subheadline)
+                                                .font(.caption)
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.neatlifyDark)
+                                                .lineLimit(1)
+
                                             Spacer()
+
                                             Text(record.timestamp, style: .time)
-                                                .font(.caption)
+                                                .font(.caption2)
                                                 .foregroundColor(.neatlifyDark.opacity(0.5))
                                         }
+
                                         Text(record.folderName)
-                                            .font(.caption)
+                                            .font(.caption2)
                                             .foregroundColor(.neatlifyDark.opacity(0.6))
                                             .lineLimit(1)
                                     }
 
-                                    Spacer()
-
                                     // Credits badge
                                     if record.creditsUsed > 0 {
                                         Text("\(record.creditsUsed)")
-                                            .font(.caption)
+                                            .font(.caption2)
                                             .fontWeight(.bold)
                                             .foregroundColor(.neatlifyYellow)
                                             .padding(.horizontal, 8)

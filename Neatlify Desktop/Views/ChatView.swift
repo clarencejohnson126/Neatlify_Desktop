@@ -46,7 +46,7 @@ struct ChatView: View {
 
                 // Quick action buttons (if no text entered)
                 if viewModel.inputText.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 10) {
                         Text("Quick Actions")
                             .font(.caption)
                             .fontWeight(.bold)
@@ -54,36 +54,33 @@ struct ChatView: View {
                             .padding(.horizontal, 16)
                             .padding(.top, 12)
 
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                QuickChatAction(
-                                    title: "By Date",
-                                    icon: "calendar",
-                                    action: { viewModel.inputText = "Organize files by date" }
-                                )
+                        HStack(spacing: 10) {
+                            QuickChatAction(
+                                title: "By Date",
+                                icon: "calendar",
+                                action: { viewModel.inputText = "Organize files by date" }
+                            )
 
-                                QuickChatAction(
-                                    title: "By Type",
-                                    icon: "doc.fill",
-                                    action: { viewModel.inputText = "Organize files by type" }
-                                )
+                            QuickChatAction(
+                                title: "By Type",
+                                icon: "doc.fill",
+                                action: { viewModel.inputText = "Organize files by type" }
+                            )
 
-                                QuickChatAction(
-                                    title: "Label Files",
-                                    icon: "tag.fill",
-                                    action: { viewModel.inputText = "Label my files with descriptive names" }
-                                )
+                            QuickChatAction(
+                                title: "Label Files",
+                                icon: "tag.fill",
+                                action: { viewModel.inputText = "Label my files with descriptive names" }
+                            )
 
-                                QuickChatAction(
-                                    title: "By Project",
-                                    icon: "folder.fill",
-                                    action: { viewModel.inputText = "Organize files by project" }
-                                )
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 12)
+                            QuickChatAction(
+                                title: "By Project",
+                                icon: "folder.fill",
+                                action: { viewModel.inputText = "Organize files by project" }
+                            )
                         }
-                        .frame(height: 44)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 12)
                     }
                     .background(Color.neatlifyBg)
                 }
@@ -341,23 +338,27 @@ struct QuickChatAction: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.neatlifyGreen)
+                    .frame(height: 20)
 
                 Text(title)
-                    .font(.caption2)
+                    .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundColor(.neatlifyDark)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
+            .frame(height: 70)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 8)
             .background(Color.white)
             .cornerRadius(8)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.neatlifyDark, lineWidth: 1)
+                    .stroke(Color.neatlifyDark, lineWidth: 2)
             )
         }
         .buttonStyle(.plain)
