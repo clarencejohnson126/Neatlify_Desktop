@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>method</key>
-    <string>app-store</string>
+    <string>developer-id</string>
     <key>teamID</key>
     <string>YH8992LT9F</string>
     <key>signingStyle</key>
