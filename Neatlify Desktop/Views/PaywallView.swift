@@ -37,6 +37,8 @@ struct PaywallView: View {
     @State private var showLinkSheet: Bool = false
     @State private var checkoutError: String = ""
     @State private var showCheckoutError: Bool = false
+    @State private var testAlert: String = ""
+    @State private var showTestAlert: Bool = false
 
     var body: some View {
         ZStack {
@@ -226,6 +228,11 @@ struct PaywallView: View {
         } message: {
             Text("Please sign in or create an account before purchasing credits. Visit neatlify.com to create your account.")
         }
+        .alert("Button Test", isPresented: $showTestAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(testAlert)
+        }
         .sheet(isPresented: $showLinkSheet) {
             LinkAccountView(userSession: userSession, isPresented: $showLinkSheet)
         }
@@ -245,7 +252,10 @@ struct PaywallView: View {
     #else
     private func purchasePack(_ pack: PaymentService.CreditPack) {
         // Allow purchase to proceed - email will be requested at payment
-        print("DEBUG: purchasePack called for \(pack.title)")
+        let email = userSession.userEmail ?? "NO EMAIL SET"
+        testAlert = "Clicked: \(pack.title)\nEmail: \(email)\nCredits: \(userSession.fileCredits)"
+        showTestAlert = true
+        print("DEBUG: purchasePack called for \(pack.title), email: \(email)")
         PaymentService.shared.purchasePack(pack)
     }
     #endif
