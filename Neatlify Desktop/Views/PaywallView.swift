@@ -411,7 +411,9 @@ struct PaywallView: View {
                 price: "€5",
                 perFile: "€0.05/file",
                 badge: nil,
-                color: .neatlifyDark,
+                color: .neatlifyGreen,
+                backgroundColor: Color.green.opacity(0.1),
+                borderColor: .neatlifyGreen,
                 isPopular: false
             ) {
                 purchasePack(.starter)
@@ -423,7 +425,9 @@ struct PaywallView: View {
                 price: "€30",
                 perFile: "€0.03/file",
                 badge: "Save 40%",
-                color: .neatlifyGreen,
+                color: .neatlifyYellow,
+                backgroundColor: Color.yellow.opacity(0.2),
+                borderColor: .neatlifyYellow,
                 isPopular: true
             ) {
                 purchasePack(.pro)
@@ -436,6 +440,8 @@ struct PaywallView: View {
                 perFile: "€0.02/file",
                 badge: "Save 60%",
                 color: .neatlifyRed,
+                backgroundColor: Color.red.opacity(0.1),
+                borderColor: .neatlifyRed,
                 isPopular: false
             ) {
                 purchasePack(.business)
@@ -449,7 +455,8 @@ struct PaywallView: View {
     // MARK: - Enterprise Button (shared)
 
     private var enterpriseButton: some View {
-        Button(action: {
+        let blueColor = Color(red: 0.2, green: 0.4, blue: 0.9)
+        return Button(action: {
             PaymentService.shared.contactEnterprise()
         }) {
             HStack {
@@ -458,13 +465,14 @@ struct PaywallView: View {
                         Text("Enterprise")
                             .font(.headline)
                             .fontWeight(.black)
+                            .foregroundColor(.neatlifyDark)
                         Text("Unlimited")
                             .font(.caption)
                             .fontWeight(.black)
                             .foregroundColor(.white)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(Color.purple)
+                            .background(blueColor)
                             .cornerRadius(4)
                     }
                     Text("Custom volume pricing for teams")
@@ -475,15 +483,16 @@ struct PaywallView: View {
                 Text("Contact Us")
                     .font(.subheadline)
                     .fontWeight(.bold)
-                    .foregroundColor(.purple)
+                    .foregroundColor(blueColor)
             }
             .padding(16)
-            .background(Color.white)
+            .background(blueColor.opacity(0.1))
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.neatlifyDark, lineWidth: 2)
+                    .stroke(blueColor, lineWidth: 3)
             )
+            .shadow(color: blueColor.opacity(0.3), radius: 6, x: 0, y: 4)
         }
         .buttonStyle(.plain)
     }
@@ -593,31 +602,40 @@ struct CreditPackCard: View {
     let perFile: String
     let badge: String?
     let color: Color
+    let backgroundColor: Color
+    let borderColor: Color
     let isPopular: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            ZStack {
-                // Popular badge
+            VStack(spacing: 0) {
+                // Popular badge - fixed positioning
                 if isPopular {
-                    VStack {
-                        HStack {
-                            Spacer()
-                            Text("⭐ POPULAR")
-                                .font(.caption2)
-                                .fontWeight(.black)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.neatlifyRed)
-                                .cornerRadius(8)
-                                .offset(x: -8, y: -8)
-                        }
+                    HStack {
                         Spacer()
+                        Text("⭐ POPULAR")
+                            .font(.caption2)
+                            .fontWeight(.black)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.neatlifyRed)
+                            .cornerRadius(8)
+                            .padding(.top, 8)
+                            .padding(.trailing, 8)
+                    }
+                } else {
+                    // Empty space to keep alignment consistent
+                    HStack {
+                        Spacer()
+                        Text("")
+                            .padding(.top, 8)
+                            .padding(.trailing, 8)
                     }
                 }
 
+                // Content
                 HStack {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 10) {
@@ -633,7 +651,7 @@ struct CreditPackCard: View {
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
-                                    .background(Color.neatlifyGreen)
+                                    .background(color)
                                     .cornerRadius(4)
                             }
                         }
@@ -652,15 +670,13 @@ struct CreditPackCard: View {
                 }
                 .padding(20)
             }
-            .background(
-                isPopular ? Color.neatlifyYellow.opacity(0.3) : Color.white
-            )
+            .background(backgroundColor)
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.neatlifyDark, lineWidth: isPopular ? 3 : 2)
+                    .stroke(borderColor, lineWidth: isPopular ? 4 : 3)
             )
-            .shadow(color: isPopular ? Color.neatlifyDark.opacity(0.2) : .clear, radius: 0, x: 4, y: 4)
+            .shadow(color: borderColor.opacity(0.3), radius: isPopular ? 12 : 6, x: 0, y: isPopular ? 8 : 4)
         }
         .buttonStyle(.plain)
     }
