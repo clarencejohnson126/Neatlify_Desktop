@@ -87,8 +87,11 @@ class PaymentService {
         case .business: productType = "business"
         }
 
-        // Get user email if linked
-        let userEmail = UserSession.load().userEmail ?? ""
+        // Get user email from Supabase auth
+        let userSession = UserSession.load()
+        let userEmail = userSession.userEmail ?? ""
+
+        Logger.shared.info("Creating checkout for \(productType), email: \(userEmail)")
 
         guard let url = URL(string: "https://nlvlwrhayrvberdyjgjx.supabase.co/functions/v1/create-checkout") else {
             Logger.shared.error("Invalid checkout URL")
@@ -99,6 +102,12 @@ class PaymentService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
+        // Add JWT token if available
+        if let token = AuthSessionStorage.shared.getAccessToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            Logger.shared.debug("Added JWT token to checkout request")
+        }
+
         let body: [String: Any] = [
             "productType": productType,
             "userEmail": userEmail,
@@ -108,19 +117,36 @@ class PaymentService {
 
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
-            let (data, _) = try await URLSession.shared.data(for: request)
+            Logger.shared.debug("Sending checkout request for \(productType)")
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            // Log HTTP response
+            if let httpResponse = response as? HTTPURLResponse {
+                Logger.shared.debug("Checkout response status: \(httpResponse.statusCode)")
+            }
+
+            // Log raw response data for debugging
+            if let responseString = String(data: data, encoding: .utf8) {
+                Logger.shared.debug("Checkout response body: \(responseString)")
+            }
 
             if let response = try? JSONDecoder().decode(CheckoutResponse.self, from: data),
                let checkoutURL = URL(string: response.url) {
+                Logger.shared.info("Got checkout URL, opening in browser")
                 await MainActor.run {
                     NSWorkspace.shared.open(checkoutURL)
                 }
                 Logger.shared.info("Opened Stripe checkout for \(productType)")
             } else {
                 Logger.shared.error("Failed to parse checkout response")
+                // Try to decode as error response
+                if let errorResponse = try? JSONDecoder().decode([String: String].self, from: data) {
+                    Logger.shared.error("Server error: \(errorResponse)")
+                }
             }
         } catch {
-            Logger.shared.error("Checkout error: \(error)")
+            Logger.shared.error("Checkout error: \(error.localizedDescription)")
         }
     }
 
