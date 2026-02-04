@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		115405D12F3143230010B297 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 115405D02F3143230010B297 /* StoreKit.framework */; };
+		11F8D6A02F40B8C000A5E1B2 /* AuthenticationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F8D69F2F40B8C000A5E1B2 /* AuthenticationService.swift */; };
+		11F8D6A22F40B8C100A5E1B2 /* AuthSessionStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F8D6A12F40B8C100A5E1B2 /* AuthSessionStorage.swift */; };
+		11F8D6A42F40B8C200A5E1B2 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F8D6A32F40B8C200A5E1B2 /* AuthenticationView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -25,6 +28,9 @@
 		11EBC23D2F2388AA00B62102 /* Neatlify Desktop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Neatlify Desktop.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		11EBC24E2F2388AB00B62102 /* Neatlify DesktopTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Neatlify DesktopTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		11EBC29C2F238D8C00B62102 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		11F8D69F2F40B8C000A5E1B2 /* AuthenticationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AuthenticationService.swift; sourceTree = "<group>"; };
+		11F8D6A12F40B8C100A5E1B2 /* AuthSessionStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AuthSessionStorage.swift; sourceTree = "<group>"; };
+		11F8D6A32F40B8C200A5E1B2 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/AuthenticationView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -304,6 +310,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				11F8D6A02F40B8C000A5E1B2 /* AuthenticationService.swift in Sources */,
+				11F8D6A22F40B8C100A5E1B2 /* AuthSessionStorage.swift in Sources */,
+				11F8D6A42F40B8C200A5E1B2 /* AuthenticationView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

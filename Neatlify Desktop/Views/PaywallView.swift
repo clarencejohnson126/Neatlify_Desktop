@@ -87,18 +87,23 @@ struct PaywallView: View {
                         )
                     }
 
-                // Info: Email will be requested at checkout
+                // Info: Credits sync automatically
                 HStack(spacing: 8) {
-                    Image(systemName: "info.circle.fill")
-                        .foregroundColor(.neatlifyYellow)
-                    Text("Your email will be requested at checkout to sync credits")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.neatlifyDark.opacity(0.7))
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.neatlifyGreen)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Credits sync automatically")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.neatlifyDark)
+                        Text("Your purchases appear on web and desktop instantly")
+                            .font(.caption2)
+                            .foregroundColor(.neatlifyDark.opacity(0.6))
+                    }
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.neatlifyYellow.opacity(0.15))
+                .background(Color.neatlifyGreen.opacity(0.15))
                 .cornerRadius(8)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)

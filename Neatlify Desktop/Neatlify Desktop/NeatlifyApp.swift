@@ -19,12 +19,23 @@ struct NeatlifyApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(userSession)
-                .frame(minWidth: 900, minHeight: 600)
+            Group {
+                if userSession.isAccountLinked {
+                    ContentView()
+                        .environmentObject(userSession)
+                        .frame(minWidth: 900, minHeight: 600)
+                } else {
+                    AuthenticationView()
+                        .environmentObject(userSession)
+                        .frame(minWidth: 500, minHeight: 600)
+                }
+            }
                 .onAppear {
                     // Initialize StoreKit transaction listener for App Store version
                     _ = StoreKitManager.shared
+
+                    // Check if user has active Supabase Auth session
+                    userSession.checkAuthStatus()
 
                     // Attempt to auto-sync credits from server
                     // This helps users see their purchased credits without manual linking

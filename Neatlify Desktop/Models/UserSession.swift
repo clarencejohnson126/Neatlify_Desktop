@@ -78,6 +78,7 @@ class UserSession: ObservableObject, Codable {
     @Published var userEmail: String? = nil  // Linked account email for server-side credit checking
     @Published var userFullName: String? = nil  // User's full name for display
     @Published var organizationHistory: [OrganizationRecord] = []  // Max 500 records
+    @Published var isAuthenticatedWithSupabase: Bool = false  // True if logged in via Supabase Auth
 
     // Pricing constants
     static let freeCleanupFileLimit = 0  // Free trial disabled - scan free, organize paid
@@ -97,6 +98,7 @@ class UserSession: ObservableObject, Codable {
         case userEmail
         case userFullName
         case organizationHistory
+        case isAuthenticatedWithSupabase
     }
 
     init() {}
@@ -111,6 +113,7 @@ class UserSession: ObservableObject, Codable {
         userEmail = try container.decodeIfPresent(String.self, forKey: .userEmail) ?? Self.getKeychainString(key: Self.keychainEmailKey)
         userFullName = try container.decodeIfPresent(String.self, forKey: .userFullName)
         organizationHistory = try container.decodeIfPresent([OrganizationRecord].self, forKey: .organizationHistory) ?? []
+        isAuthenticatedWithSupabase = try container.decodeIfPresent(Bool.self, forKey: .isAuthenticatedWithSupabase) ?? false
     }
 
     func encode(to encoder: Encoder) throws {
@@ -123,6 +126,7 @@ class UserSession: ObservableObject, Codable {
         try container.encode(userEmail, forKey: .userEmail)
         try container.encodeIfPresent(userFullName, forKey: .userFullName)
         try container.encode(organizationHistory, forKey: .organizationHistory)
+        try container.encode(isAuthenticatedWithSupabase, forKey: .isAuthenticatedWithSupabase)
     }
 
     // MARK: - History Management
@@ -145,17 +149,40 @@ class UserSession: ObservableObject, Codable {
         save()
     }
 
-    /// Check if account is linked
+    /// Check if account is linked (either via Supabase Auth or manual linking)
     var isAccountLinked: Bool {
-        return userEmail != nil && !userEmail!.isEmpty
+        return (userEmail != nil && !userEmail!.isEmpty) || isAuthenticatedWithSupabase
     }
 
-    /// Unlink account
+    /// Check auth status from storage and update session
+    func checkAuthStatus() {
+        // Check if user is authenticated via Supabase
+        if let email = AuthSessionStorage.shared.getUserEmail(),
+           let _ = AuthSessionStorage.shared.getAccessToken() {
+            userEmail = email
+            isAuthenticatedWithSupabase = true
+            Logger.shared.info("User authenticated: \(email)")
+
+            // Auto-sync credits from server
+            Task {
+                await syncCreditsFromServer()
+            }
+        } else {
+            Logger.shared.info("No active authentication found")
+        }
+    }
+
+    /// Unlink account (both manual linking and Supabase Auth)
     func unlinkAccount() {
         userEmail = nil
         fileCredits = 0
         userFullName = nil
         organizationHistory = []
+        isAuthenticatedWithSupabase = false
+
+        // Clear Supabase Auth session
+        AuthSessionStorage.shared.clearSession()
+        AuthenticationService.shared.signOut()
 
         // Remove from keychain - use helper function
         let query: [String: Any] = [
