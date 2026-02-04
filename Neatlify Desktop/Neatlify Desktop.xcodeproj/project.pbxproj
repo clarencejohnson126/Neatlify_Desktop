@@ -18,39 +18,16 @@
 			remoteGlobalIDString = 11EBC23C2F2388AA00B62102;
 			remoteInfo = "Neatlify Desktop";
 		};
-		11EBC2592F2388AB00B62102 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 11EBC2352F2388AA00B62102 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 11EBC23C2F2388AA00B62102;
-			remoteInfo = "Neatlify Desktop";
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		115405D02F3143230010B297 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		11EBC23D2F2388AA00B62102 /* Neatlify Desktop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Neatlify Desktop.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		11EBC24E2F2388AB00B62102 /* Neatlify DesktopTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Neatlify DesktopTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		11EBC2582F2388AB00B62102 /* Neatlify DesktopUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Neatlify DesktopUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		11EBC29C2F238D8C00B62102 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		115405D32F3145DD0010B297 /* Exceptions for "Services" folder in "Neatlify DesktopUITests" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				DistributionDetector.swift,
-				StoreKitManager.swift,
-			);
-			target = 11EBC2572F2388AB00B62102 /* Neatlify DesktopUITests */;
-		};
-		2CCD5E9ACD969BD1073BD116 /* Exceptions for "Neatlify Desktop" root in "Neatlify Desktop" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 11EBC23C2F2388AA00B62102 /* Neatlify Desktop */;
-		};
 		11EBC2B82F2399FE00B62102 /* Exceptions for "Models" folder in "Neatlify Desktop" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -110,9 +87,6 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		11EBC23F2F2388AA00B62102 /* Neatlify Desktop */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				2CCD5E9ACD969BD1073BD116 /* Exceptions for "Neatlify Desktop" root in "Neatlify Desktop" target */,
-			);
 			path = "Neatlify Desktop";
 			sourceTree = "<group>";
 		};
@@ -138,7 +112,6 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				11EBC2C32F239A0600B62102 /* Exceptions for "Services" folder in "Neatlify Desktop" target */,
-				115405D32F3145DD0010B297 /* Exceptions for "Services" folder in "Neatlify DesktopUITests" target */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -185,13 +158,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		11EBC2552F2388AB00B62102 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -225,7 +191,6 @@
 			children = (
 				11EBC23D2F2388AA00B62102 /* Neatlify Desktop.app */,
 				11EBC24E2F2388AB00B62102 /* Neatlify DesktopTests.xctest */,
-				11EBC2582F2388AB00B62102 /* Neatlify DesktopUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -278,34 +243,6 @@
 			productReference = 11EBC24E2F2388AB00B62102 /* Neatlify DesktopTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		11EBC2572F2388AB00B62102 /* Neatlify DesktopUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 11EBC2682F2388AB00B62102 /* Build configuration list for PBXNativeTarget "Neatlify DesktopUITests" */;
-			buildPhases = (
-				11EBC2542F2388AB00B62102 /* Sources */,
-				11EBC2552F2388AB00B62102 /* Frameworks */,
-				11EBC2562F2388AB00B62102 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				11EBC25A2F2388AB00B62102 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				11EBC25B2F2388AB00B62102 /* Neatlify DesktopUITests */,
-				11EBC2B32F2399FE00B62102 /* Models */,
-				11EBC2BE2F239A0600B62102 /* Services */,
-				11EBC2E12F239A1300B62102 /* Views */,
-				11EBC2F32F239A1900B62102 /* Utilities */,
-				11EBC3002F239A1D00B62102 /* ViewModels */,
-			);
-			name = "Neatlify DesktopUITests";
-			packageProductDependencies = (
-			);
-			productName = "Neatlify DesktopUITests";
-			productReference = 11EBC2582F2388AB00B62102 /* Neatlify DesktopUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -320,10 +257,6 @@
 						CreatedOnToolsVersion = 16.2;
 					};
 					11EBC24D2F2388AB00B62102 = {
-						CreatedOnToolsVersion = 16.2;
-						TestTargetID = 11EBC23C2F2388AA00B62102;
-					};
-					11EBC2572F2388AB00B62102 = {
 						CreatedOnToolsVersion = 16.2;
 						TestTargetID = 11EBC23C2F2388AA00B62102;
 					};
@@ -345,7 +278,6 @@
 			targets = (
 				11EBC23C2F2388AA00B62102 /* Neatlify Desktop */,
 				11EBC24D2F2388AB00B62102 /* Neatlify DesktopTests */,
-				11EBC2572F2388AB00B62102 /* Neatlify DesktopUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -359,13 +291,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		11EBC24C2F2388AB00B62102 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		11EBC2562F2388AB00B62102 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -389,13 +314,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		11EBC2542F2388AB00B62102 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -403,11 +321,6 @@
 			isa = PBXTargetDependency;
 			target = 11EBC23C2F2388AA00B62102 /* Neatlify Desktop */;
 			targetProxy = 11EBC24F2F2388AB00B62102 /* PBXContainerItemProxy */;
-		};
-		11EBC25A2F2388AB00B62102 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 11EBC23C2F2388AA00B62102 /* Neatlify Desktop */;
-			targetProxy = 11EBC2592F2388AB00B62102 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -546,9 +459,10 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "Info.plist";
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";				LD_RUNPATH_SEARCH_PATHS = (
+				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
@@ -579,9 +493,10 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "Info.plist";
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";				LD_RUNPATH_SEARCH_PATHS = (
+				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
@@ -631,36 +546,6 @@
 			};
 			name = Release;
 		};
-		11EBC2692F2388AB00B62102 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = "BarberBuddy.App.Neatlify-DesktopUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = "Neatlify Desktop";
-			};
-			name = Debug;
-		};
-		11EBC26A2F2388AB00B62102 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = "BarberBuddy.App.Neatlify-DesktopUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = "Neatlify Desktop";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -687,15 +572,6 @@
 			buildConfigurations = (
 				11EBC2662F2388AB00B62102 /* Debug */,
 				11EBC2672F2388AB00B62102 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		11EBC2682F2388AB00B62102 /* Build configuration list for PBXNativeTarget "Neatlify DesktopUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				11EBC2692F2388AB00B62102 /* Debug */,
-				11EBC26A2F2388AB00B62102 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

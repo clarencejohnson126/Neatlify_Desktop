@@ -6,8 +6,8 @@
     <string>en</string>
     <key>CFBundleExecutable</key>
     <string>Neatlify Desktop</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.neatlify.Desktop</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.neatlify.desktop</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
