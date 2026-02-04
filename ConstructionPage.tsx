@@ -356,7 +356,7 @@ const ConstructionPage: React.FC = () => {
               {content.hero.subtitle}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <a href="https://github.com/clarencejohnson126/Neatlify_Desktop/releases/download/v1.1/Neatlify-Desktop.dmg" target="_blank" rel="noopener noreferrer" className="bg-[#29AB87] text-white px-8 py-4 rounded-full text-xl font-bold sketch-border cartoon-shadow-hover transition-all text-center pulse">
+              <a href="https://github.com/clarencejohnson126/Neatlify_Desktop/releases/download/v1.2/Neatlify-Desktop-1.2.dmg" target="_blank" rel="noopener noreferrer" className="bg-[#29AB87] text-white px-8 py-4 rounded-full text-xl font-bold sketch-border cartoon-shadow-hover transition-all text-center pulse">
                 {content.hero.cta}
               </a>
               <a href="#how-it-works" className="px-8 py-4 rounded-full text-xl font-bold sketch-border bg-white text-[#2D3436] cartoon-shadow-hover transition-all text-center">
@@ -492,7 +492,7 @@ const ConstructionPage: React.FC = () => {
           <AnimatedSection className="text-center">
             <h2 className="text-4xl md:text-5xl font-black mb-4 text-[#2D3436]">{content.cta.title}</h2>
             <p className="text-xl opacity-70 mb-8 text-[#2D3436]">{content.cta.subtitle}</p>
-            <a href="https://github.com/clarencejohnson126/Neatlify_Desktop/releases/download/v1.1/Neatlify-Desktop.dmg" target="_blank" rel="noopener noreferrer" className="inline-block bg-[#29AB87] text-white px-10 py-5 rounded-full text-xl font-black sketch-border cartoon-shadow-hover transition-all pulse">
+            <a href="https://github.com/clarencejohnson126/Neatlify_Desktop/releases/download/v1.2/Neatlify-Desktop-1.2.dmg" target="_blank" rel="noopener noreferrer" className="inline-block bg-[#29AB87] text-white px-10 py-5 rounded-full text-xl font-black sketch-border cartoon-shadow-hover transition-all pulse">
               {content.cta.button}
             </a>
             <p className="mt-4 text-sm opacity-60 text-[#2D3436]">{content.cta.note}</p>

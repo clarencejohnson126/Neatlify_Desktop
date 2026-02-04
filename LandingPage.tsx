@@ -265,7 +265,7 @@ const LandingPage: React.FC = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
                 <a
-                  href="https://github.com/clarencejohnson126/Neatlify_Desktop/releases/download/v1.1/Neatlify-Desktop.dmg"
+                  href="https://github.com/clarencejohnson126/Neatlify_Desktop/releases/download/v1.2/Neatlify-Desktop-1.2.dmg"
                   onClick={handleDownload}
                   className="bg-[#29AB87] text-white px-8 py-4 rounded-full text-xl font-bold sketch-border cartoon-shadow-hover transition-all text-center pulse cursor-pointer"
                   target="_blank"
@@ -626,7 +626,7 @@ const LandingPage: React.FC = () => {
             <p className="text-xl opacity-80 mb-10">{t.finalCta.subtitle}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
               <a
-                href="https://github.com/clarencejohnson126/Neatlify_Desktop/releases/download/v1.1/Neatlify-Desktop.dmg"
+                href="https://github.com/clarencejohnson126/Neatlify_Desktop/releases/download/v1.2/Neatlify-Desktop-1.2.dmg"
                 onClick={handleDownload}
                 className="bg-[#29AB87] text-white px-10 py-5 rounded-full text-xl font-black sketch-border cartoon-shadow-hover transition-all pulse cursor-pointer"
                 target="_blank"
