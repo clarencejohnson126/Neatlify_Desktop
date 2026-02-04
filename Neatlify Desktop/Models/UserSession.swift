@@ -154,13 +154,20 @@ class UserSession: ObservableObject, Codable {
     func unlinkAccount() {
         userEmail = nil
         fileCredits = 0
-        // Remove from keychain
+        userFullName = nil
+        organizationHistory = []
+
+        // Remove from keychain - use helper function
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: Self.keychainEmailKey,
             kSecAttrService as String: "com.neatlify.desktop"
         ]
-        SecItemDelete(query as CFDictionary)
+        let status = SecItemDelete(query as CFDictionary)
+        Logger.shared.info("Keychain deletion status: \(status)")
+
+        // Clear from UserDefaults
+        UserDefaults.standard.removeObject(forKey: "UserSession")
         save()
     }
 

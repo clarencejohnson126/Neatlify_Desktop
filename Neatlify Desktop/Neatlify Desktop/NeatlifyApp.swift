@@ -15,6 +15,7 @@ struct NeatlifyApp: App {
     @State private var creditsAdded = 0
     @State private var showPaymentError = false
     @State private var paymentErrorMessage = ""
+    @State private var shouldReset = false
 
     var body: some Scene {
         WindowGroup {
@@ -25,11 +26,21 @@ struct NeatlifyApp: App {
                     // Initialize StoreKit transaction listener for App Store version
                     _ = StoreKitManager.shared
 
-                    // Sync credits from server on app launch to ensure fresh data
-                    if userSession.isAccountLinked {
-                        Task {
+                    // Attempt to auto-sync credits from server
+                    // This helps users see their purchased credits without manual linking
+                    Task {
+                        // Check if we have cached credits - if so, try to sync server version
+                        if userSession.fileCredits > 0 {
+                            Logger.shared.info("Found cached credits: \(userSession.fileCredits), syncing from server...")
                             await userSession.syncCreditsFromServer()
                         }
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UserDidSignOut"))) { _ in
+                    // User signed out - restart the app to reload fresh session
+                    Logger.shared.info("Sign out notification received, restarting app...")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        NSApplication.shared.terminate(nil)
                     }
                 }
                 .onOpenURL { url in

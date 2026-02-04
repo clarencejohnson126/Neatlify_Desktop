@@ -34,6 +34,7 @@ struct PaywallView: View {
     @State private var promoSuccess: Bool = false
     @State private var showPromoSection: Bool = false
     @State private var showAccountRequiredAlert: Bool = false
+    @State private var showLinkSheet: Bool = false
 
     var body: some View {
         ZStack {
@@ -86,25 +87,23 @@ struct PaywallView: View {
                         )
                     }
 
-                // Account required notice (if not signed in)
-                if !userSession.isAccountLinked {
-                    HStack(spacing: 8) {
-                        Image(systemName: "person.crop.circle.badge.exclamationmark")
-                            .foregroundColor(.neatlifyRed)
-                        Text("Sign in required to purchase credits")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.neatlifyRed)
-                    }
-                    .padding(12)
-                    .frame(maxWidth: .infinity)
-                    .background(Color.neatlifyRed.opacity(0.1))
-                    .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.neatlifyRed.opacity(0.3), lineWidth: 1)
-                    )
+                // Info: Email will be requested at checkout
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.neatlifyYellow)
+                    Text("Your email will be requested at checkout to sync credits")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.neatlifyDark.opacity(0.7))
                 }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.neatlifyYellow.opacity(0.15))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.neatlifyDark, lineWidth: 2)
+                )
 
                 // Credit packs
                 #if APPSTORE
@@ -220,6 +219,9 @@ struct PaywallView: View {
         } message: {
             Text("Please sign in or create an account before purchasing credits. Visit neatlify.com to create your account.")
         }
+        .sheet(isPresented: $showLinkSheet) {
+            LinkAccountView(userSession: userSession, isPresented: $showLinkSheet)
+        }
     }
 
     #if APPSTORE
@@ -235,11 +237,7 @@ struct PaywallView: View {
     }
     #else
     private func purchasePack(_ pack: PaymentService.CreditPack) {
-        // Require account to be linked before purchasing
-        guard userSession.isAccountLinked else {
-            showAccountRequiredAlert = true
-            return
-        }
+        // Allow purchase to proceed - email will be requested at payment
         PaymentService.shared.purchasePack(pack)
     }
     #endif

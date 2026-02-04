@@ -641,9 +641,12 @@ struct AccountMenuView: View {
         // Clear user session
         userSession.unlinkAccount()
         isOpen = false
+        Logger.shared.info("User signed out, posting notification to restart app")
 
-        // Restart the app
-        NSApplication.shared.terminate(nil)
+        // Post notification to restart app with fresh session
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            NotificationCenter.default.post(name: NSNotification.Name("UserDidSignOut"), object: nil)
+        }
     }
 }
 
