@@ -11,8 +11,18 @@ class SupabaseService {
     static let shared = SupabaseService()
 
     private let baseURL = "https://nlvlwrhayrvberdyjgjx.supabase.co/functions/v1"
+    private let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sdmx3cmhheXJ2YmVyZHlqZ2p4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MDIwMDksImV4cCI6MjA4NDE3ODAwOX0.qKpkkOI2BC6yww8ZV7VFl6tMLNx_VyZifUPPFAciyws"
 
     private init() {}
+
+    // MARK: - Helper to add auth to requests
+
+    private func addAuthHeaders(to request: inout URLRequest) {
+        request.setValue(anonKey, forHTTPHeaderField: "apikey")
+        if let token = AuthSessionStorage.shared.getAccessToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+    }
 
     // MARK: - Credit Checking
 
@@ -25,6 +35,7 @@ class SupabaseService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        addAuthHeaders(to: &request)
 
         let body: [String: Any] = [
             "user_email": userEmail,
