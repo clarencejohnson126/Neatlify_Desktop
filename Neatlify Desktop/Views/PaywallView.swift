@@ -35,6 +35,8 @@ struct PaywallView: View {
     @State private var showPromoSection: Bool = false
     @State private var showAccountRequiredAlert: Bool = false
     @State private var showLinkSheet: Bool = false
+    @State private var checkoutError: String = ""
+    @State private var showCheckoutError: Bool = false
 
     var body: some View {
         ZStack {
@@ -243,6 +245,7 @@ struct PaywallView: View {
     #else
     private func purchasePack(_ pack: PaymentService.CreditPack) {
         // Allow purchase to proceed - email will be requested at payment
+        print("DEBUG: purchasePack called for \(pack.title)")
         PaymentService.shared.purchasePack(pack)
     }
     #endif

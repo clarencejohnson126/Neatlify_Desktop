@@ -74,7 +74,9 @@ class PaymentService {
     @MainActor
     func purchasePack(_ pack: CreditPack) {
         // Use Supabase Edge Function to create dynamic checkout session
+        print("DEBUG: PaymentService.purchasePack called for \(pack.title)")
         Task {
+            print("DEBUG: Creating checkout session for \(pack.title)")
             await createCheckoutSession(pack: pack)
         }
     }
