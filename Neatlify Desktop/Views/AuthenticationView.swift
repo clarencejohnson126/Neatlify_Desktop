@@ -190,9 +190,26 @@ struct AuthenticationView: View {
             } catch {
                 await MainActor.run {
                     isLoading = false
-                    errorMessage = error.localizedDescription
+                    let errorDesc = error.localizedDescription
+
+                    // Provide user-friendly error messages
+                    let friendlyError: String
+                    if errorDesc.contains("Invalid login credentials") {
+                        friendlyError = "❌ Incorrect email or password.\n\nPlease check and try again."
+                    } else if errorDesc.contains("429") || errorDesc.contains("rate") {
+                        friendlyError = "⏱️ Too many login attempts.\n\nPlease wait 10 minutes before trying again."
+                    } else if errorDesc.contains("invalid email") || errorDesc.contains("invalid_email") {
+                        friendlyError = "❌ Invalid email address.\n\nPlease check the spelling."
+                    } else if errorDesc.contains("Network") {
+                        friendlyError = "🌐 Network error.\n\nPlease check your connection."
+                    } else {
+                        friendlyError = "❌ Authentication failed.\n\n\(errorDesc)"
+                    }
+
+                    errorMessage = friendlyError
                     showError = true
-                    Logger.shared.error("Auth failed: \(error.localizedDescription)")
+                    Logger.shared.error("Auth failed: \(errorDesc)")
+                    print("DEBUG Auth Error: \(errorDesc)")
                 }
             }
         }

@@ -18,6 +18,43 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
 
   const { signIn, signUp, resetPassword } = useAuth();
 
+  const getReadableError = (errorMessage: string): string => {
+    if (!errorMessage) return 'An error occurred. Please try again.';
+
+    // Rate limiting errors
+    if (errorMessage.includes('429') || errorMessage.includes('rate_limit') || errorMessage.includes('after 6 seconds')) {
+      return '⏱️ Too many attempts. Please wait 10 minutes before trying again.';
+    }
+
+    // Invalid credentials
+    if (errorMessage.includes('Invalid login credentials') || errorMessage.includes('invalid_credentials')) {
+      return '❌ Incorrect email or password. Please try again.';
+    }
+
+    // Invalid email
+    if (errorMessage.includes('invalid email') || errorMessage.includes('Email address is invalid')) {
+      return '❌ The email address is invalid. Please check the spelling.';
+    }
+
+    // User already exists
+    if (errorMessage.includes('User already registered') || errorMessage.includes('already exists')) {
+      return '📧 This email is already registered. Try signing in instead!';
+    }
+
+    // Email confirmation required
+    if (errorMessage.includes('Email not confirmed') || errorMessage.includes('email_not_confirmed')) {
+      return '📬 Please confirm your email first. Check your inbox for the confirmation link.';
+    }
+
+    // Network/connection errors
+    if (errorMessage.includes('network') || errorMessage.includes('Network')) {
+      return '🌐 Network error. Please check your connection and try again.';
+    }
+
+    // Default: return the error message itself if we don't recognize it
+    return errorMessage;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -31,7 +68,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
         const { error } = await signIn(email, password);
         console.log('Auth modal: signIn returned, error:', error);
         if (error) {
-          setError(error.message);
+          setError(getReadableError(error.message));
         } else {
           console.log('Auth modal: success, calling onClose');
           onClose();
@@ -40,20 +77,20 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
       } else if (mode === 'signup') {
         const { error } = await signUp(email, password, fullName);
         if (error) {
-          setError(error.message);
+          setError(getReadableError(error.message));
         } else {
-          setMessage('Check your email for the confirmation link!');
+          setMessage('✅ Check your email for the confirmation link!');
         }
       } else if (mode === 'forgot') {
         const { error } = await resetPassword(email);
         if (error) {
-          setError(error.message);
+          setError(getReadableError(error.message));
         } else {
-          setMessage('Check your email for the password reset link!');
+          setMessage('✅ Check your email for the password reset link!');
         }
       }
     } catch (err) {
-      setError('An unexpected error occurred');
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
