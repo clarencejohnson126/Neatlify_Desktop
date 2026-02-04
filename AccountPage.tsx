@@ -99,7 +99,7 @@ const AccountPage: React.FC = () => {
           <div className="grid sm:grid-cols-3 gap-6">
             <div>
               <div className="text-sm opacity-80">Available</div>
-              <div className="text-4xl font-black">{loadingData ? '...' : (freshProfile?.credits_remaining ?? (freshProfile?.credits_total ?? 0) - (freshProfile?.credits_used ?? 0) || 0)}</div>
+              <div className="text-4xl font-black">{loadingData ? '...' : ((freshProfile?.credits_remaining ?? ((freshProfile?.credits_total ?? 0) - (freshProfile?.credits_used ?? 0))) || 0)}</div>
             </div>
             <div>
               <div className="text-sm opacity-80">Used</div>
