@@ -123,16 +123,16 @@ const LandingPage: React.FC = () => {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   const handleDownload = (e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
-    // Require login first
+    // Require login first - NO EXCEPTIONS
     if (!user) {
       e.preventDefault();
       openAuth('signup');
       return;
     }
-    // User is logged in, allow download
-    if (e.currentTarget instanceof HTMLAnchorElement) {
-      window.location.href = e.currentTarget.href;
-    }
+    // User is logged in, start download
+    e.preventDefault();
+    const downloadUrl = 'https://github.com/clarencejohnson126/Neatlify_Desktop/releases/download/v1.3.3/Neatlify-Desktop-1.3.3.dmg';
+    window.location.href = downloadUrl;
   };
 
   const handleCheckout = async (productType: 'starter' | 'pro' | 'business') => {
@@ -264,15 +264,12 @@ const LandingPage: React.FC = () => {
                 {t.hero.useCases}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                <a
-                  href="https://github.com/clarencejohnson126/Neatlify_Desktop/releases/download/v1.2/Neatlify-Desktop-1.2.dmg"
+                <button
                   onClick={handleDownload}
                   className="bg-[#29AB87] text-white px-8 py-4 rounded-full text-xl font-bold sketch-border cartoon-shadow-hover transition-all text-center pulse cursor-pointer"
-                  target="_blank"
-                  rel="noopener noreferrer"
                 >
                   {t.hero.cta}
-                </a>
+                </button>
                 <a href="#how" className="px-8 py-4 rounded-full text-xl font-bold sketch-border bg-white text-[#2D3436] cartoon-shadow-hover transition-all text-center">
                   {t.hero.secondary}
                 </a>
@@ -625,15 +622,12 @@ const LandingPage: React.FC = () => {
             <h2 className="text-4xl md:text-6xl font-black mb-6">{t.finalCta.title}</h2>
             <p className="text-xl opacity-80 mb-10">{t.finalCta.subtitle}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-              <a
-                href="https://github.com/clarencejohnson126/Neatlify_Desktop/releases/download/v1.2/Neatlify-Desktop-1.2.dmg"
+              <button
                 onClick={handleDownload}
                 className="bg-[#29AB87] text-white px-10 py-5 rounded-full text-xl font-black sketch-border cartoon-shadow-hover transition-all pulse cursor-pointer"
-                target="_blank"
-                rel="noopener noreferrer"
               >
                 {t.finalCta.cta}
-              </a>
+              </button>
               <a href="#pricing" className="bg-white text-[#2D3436] px-10 py-5 rounded-full text-xl font-black sketch-border cartoon-shadow-hover transition-all">
                 {t.finalCta.secondary}
               </a>
