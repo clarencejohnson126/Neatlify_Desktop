@@ -33,13 +33,6 @@ struct OnboardingView: View {
             icon: "lock.shield",
             color: .neatlifyGreen,
             badgeText: "Privacy First"
-        ),
-        OnboardingPage(
-            title: "Try It Free",
-            description: "Get 1 free cleanup (up to 100 files). Then purchase credit packs as you need them.",
-            icon: "gift",
-            color: .neatlifyRed,
-            badgeText: "100 Free Files"
         )
     ]
 
