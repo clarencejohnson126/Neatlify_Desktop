@@ -22,6 +22,8 @@ class OrganizationViewModel: ObservableObject {
     @Published var errorMessage: String = ""
     @Published var pricingInfo: PricingInfo?
     @Published var showPaywall: Bool = false
+    @Published var skippedFiles: [(file: FileItem, reason: String)] = []
+    @Published var totalSkipped: Int = 0
 
     private let apiService = ClaudeAPIService()
     private let fileService = FileService.shared
@@ -114,6 +116,7 @@ class OrganizationViewModel: ObservableObject {
             if plan.mode == .label {
                 // LABEL MODE: Rename files in place
                 statusMessage = "Renaming files..."
+                Logger.shared.info("Starting label mode: renaming \(scannedFiles.count) files")
 
                 try await fileService.labelFiles(scannedFiles, plan: plan) { @MainActor processed, total in
                     self.processedFiles = processed
@@ -123,10 +126,12 @@ class OrganizationViewModel: ObservableObject {
                 }
 
                 statusMessage = "Labeling complete! \(processedFiles) files renamed."
+                Logger.shared.info("Label mode complete: \(processedFiles)/\(scannedFiles.count) files renamed")
 
             } else {
                 // ORGANIZE MODE: Move files into folders
                 statusMessage = "Organizing files..."
+                Logger.shared.info("Starting organize mode: \(scannedFiles.count) files, \(plan.categories.count) categories")
 
                 let folderMap: [String: URL]
 
@@ -160,6 +165,7 @@ class OrganizationViewModel: ObservableObject {
                 }
 
                 statusMessage = "Organization complete! \(processedFiles) files organized."
+                Logger.shared.info("Organize mode complete: \(processedFiles)/\(scannedFiles.count) files moved")
             }
 
             // Deduct credits server-side
@@ -219,6 +225,25 @@ class OrganizationViewModel: ObservableObject {
             // Complete
             currentStep = .completed
             isExecuting = false
+
+            // Post notification for chat to show summary
+            let successMessage = """
+            Organization complete!
+            ✅ Organized: \(processedFiles) files
+            📁 Folders created: \(organizationPlan?.suggestedFolderStructure.count ?? 0)
+            ⏭️ Skipped: \(totalSkipped) files
+            """
+
+            NotificationCenter.default.post(
+                name: Notification.Name("OrganizationCompleted"),
+                object: nil,
+                userInfo: [
+                    "message": successMessage,
+                    "totalOrganized": processedFiles,
+                    "totalSkipped": totalSkipped,
+                    "categoryCounts": organizationPlan?.suggestedFolderStructure ?? [:]
+                ]
+            )
 
             // Log usage
             APIKeyManager.logUsage(fileCount: processedFiles, tokensUsed: 0)
@@ -402,8 +427,10 @@ class OrganizationViewModel: ObservableObject {
 
     private func analyzeFilesForLabeling(plan: OrganizationPlan) async throws {
         statusMessage = "Generating labels with AI vision..."
+        Logger.shared.info("Starting label generation for \(scannedFiles.count) files")
 
         var fileLabels: [UUID: String] = [:]
+        var totalSkippedLabeling = 0
 
         // Only process images for labeling (PDFs don't get visual labels)
         let images = scannedFiles.filter { $0.fileType == .image }
@@ -415,6 +442,7 @@ class OrganizationViewModel: ObservableObject {
         // Use larger batches (50 images) to minimize API calls while respecting token limits
         // This is a balance: fewer API calls (better performance, lower cost) vs token limits
         let imageBatches = images.chunked(into: 50)
+        Logger.shared.info("Processing \(images.count) images in \(imageBatches.count) batches")
 
         for (index, batch) in imageBatches.enumerated() {
             statusMessage = "Encoding images batch \(index + 1)/\(imageBatches.count)..."
@@ -422,6 +450,7 @@ class OrganizationViewModel: ObservableObject {
             // Encode batch images
             let encodedImages = try await ImageProcessor.encodeImages(at: batch.map { $0.url })
             let imageData = encodedImages.map { (filename: $0.url.lastPathComponent, base64: $0.base64) }
+            Logger.shared.info("Batch \(index + 1): encoded \(imageData.count)/\(batch.count) images")
 
             statusMessage = "Generating labels... (batch \(index + 1)/\(imageBatches.count))"
 
@@ -433,6 +462,9 @@ class OrganizationViewModel: ObservableObject {
                 if let label = results[file.name] {
                     fileLabels[file.id] = label
                     Logger.shared.debug("Label for \(file.name): \(label)")
+                } else {
+                    totalSkippedLabeling += 1
+                    Logger.shared.warning("No label generated for \(file.name)")
                 }
             }
 
@@ -447,6 +479,7 @@ class OrganizationViewModel: ObservableObject {
         }
 
         progress = 0.9
+        Logger.shared.info("Label generation complete: \(fileLabels.count) labeled, \(totalSkippedLabeling) skipped")
 
         // Create final plan with labels
         self.organizationPlan = OrganizationPlan(
@@ -460,13 +493,14 @@ class OrganizationViewModel: ObservableObject {
             language: plan.language
         )
 
-        Logger.shared.info("Generated \(fileLabels.count) labels")
+        self.totalSkipped = totalSkippedLabeling
     }
 
     // MARK: - Organize Mode Analysis
 
     private func analyzeFilesForOrganizing(plan: OrganizationPlan) async throws {
         statusMessage = "Analyzing files with AI..."
+        Logger.shared.info("Starting organization analysis: \(scannedFiles.count) files, criteria: \(plan.criteria)")
 
         var fileAssignments: [UUID: String] = [:]
         var categoryCounts: [String: Int] = [:]
@@ -480,6 +514,8 @@ class OrganizationViewModel: ObservableObject {
         let images = scannedFiles.filter { $0.fileType == .image }
         let pdfs = scannedFiles.filter { $0.fileType == .pdf }
 
+        Logger.shared.info("File breakdown: \(images.count) images, \(pdfs.count) PDFs")
+
         guard !images.isEmpty || !pdfs.isEmpty else {
             throw OrganizationError.noFilesFound
         }
@@ -487,18 +523,24 @@ class OrganizationViewModel: ObservableObject {
         // Encode all images upfront
         var allImageData: [(filename: String, base64: String)] = []
         if !images.isEmpty {
+            statusMessage = "Encoding \(images.count) images..."
             let encodedImages = try await ImageProcessor.encodeImages(at: images.map { $0.url })
             allImageData = encodedImages.map { (filename: $0.url.lastPathComponent, base64: $0.base64) }
+            Logger.shared.info("Successfully encoded \(allImageData.count) images")
         }
 
         // Extract text from all PDFs upfront
         var allTextData: [(filename: String, content: String)] = []
         if !pdfs.isEmpty {
+            statusMessage = "Extracting text from \(pdfs.count) PDFs..."
+            var extractedCount = 0
             for pdf in pdfs {
                 if let text = PDFProcessor.extractText(from: pdf.url, maxPages: 5) {
                     allTextData.append((filename: pdf.name, content: text))
+                    extractedCount += 1
                 }
             }
+            Logger.shared.info("Successfully extracted text from \(extractedCount)/\(pdfs.count) PDFs")
         }
 
         statusMessage = "Analyzing \(images.count) images and \(pdfs.count) documents..."
@@ -506,6 +548,7 @@ class OrganizationViewModel: ObservableObject {
 
         // CRITICAL OPTIMIZATION: Process ALL files in a single API call instead of batching
         // This reduces from potentially many calls down to just 1-2 calls max
+        Logger.shared.info("Sending \(allImageData.count + allTextData.count) files to Claude for categorization")
         let results = try await apiService.analyzeMixedFiles(
             images: allImageData,
             texts: allTextData,
@@ -513,12 +556,29 @@ class OrganizationViewModel: ObservableObject {
             categories: plan.categories
         )
 
+        Logger.shared.info("Claude returned categories for \(results.count) files")
+
         // Map results back to file IDs
         for file in scannedFiles {
             if let category = results[file.name] {
                 fileAssignments[file.id] = category
                 categoryCounts[category, default: 0] += 1
+            } else {
+                // Track skipped files and assign fallback category
+                skippedFiles.append((file: file, reason: "No category assigned by AI"))
+                totalSkipped += 1
+                Logger.shared.warning("File '\(file.name)' has no category from Claude, using fallback")
+
+                // Assign to "Uncategorized" folder as fallback
+                let fallbackCategory = "Uncategorized"
+                fileAssignments[file.id] = fallbackCategory
+                categoryCounts[fallbackCategory, default: 0] += 1
             }
+        }
+
+        Logger.shared.info("Category assignment complete: \(fileAssignments.count) assigned, \(totalSkipped) skipped")
+        for (category, count) in categoryCounts.sorted(by: { $0.key < $1.key }) {
+            Logger.shared.debug("  \(category): \(count) files")
         }
 
         progress = 0.9

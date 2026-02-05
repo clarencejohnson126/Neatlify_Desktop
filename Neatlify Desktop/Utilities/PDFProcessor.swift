@@ -11,6 +11,7 @@ import AppKit
 
 class PDFProcessor {
     // Extract text from PDF (for text-based PDFs)
+    // Returns filename-based fallback text for scanned PDFs with no text
     static func extractText(from url: URL, maxPages: Int = 10) -> String? {
         guard let document = PDFDocument(url: url) else {
             return nil
@@ -25,6 +26,14 @@ class PDFProcessor {
                 continue
             }
             fullText += pageText + "\n\n"
+        }
+
+        let cleanText = fullText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // If no text extracted (scanned PDF), return filename as fallback
+        if cleanText.count < 50 {
+            Logger.shared.info("PDF has minimal extractable text (likely scanned), using filename: \(url.lastPathComponent)")
+            return "Scanned PDF: \(url.lastPathComponent)"
         }
 
         return fullText.isEmpty ? nil : fullText

@@ -203,12 +203,20 @@ class ClaudeAPIService {
         let categoriesList = categories.joined(separator: ", ")
 
         let prompt = """
-        Categorize these images according to: \(criteria)
+        You are categorizing \(images.count) images.
 
+        CRITICAL RULES FOR CATEGORIZATION:
+        1. Use file extension (e.g., .jpg, .png, .gif) as the PRIMARY factor for categorization
+        2. If criteria mentions "format" or "file type", group by extension (all .png together, all .jpg together)
+        3. Only use content-based categorization if user explicitly asks to organize by content/subject
+        4. You MUST return a category for EVERY image provided - no exceptions
+        5. Category names MUST exactly match the provided list below
+        6. If an image doesn't fit any category, assign to "Uncategorized"
+
+        Categorization criteria: \(criteria)
         Available categories: \(categoriesList)
 
-        For each image, analyze the content and assign the most appropriate category.
-        If uncertain, use "uncategorized".
+        For each image, analyze and assign the most appropriate category based on the criteria.
 
         Return ONLY valid JSON with this structure (no additional text):
         {
@@ -217,6 +225,7 @@ class ClaudeAPIService {
         }
 
         IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.
+        IMPORTANT: Every filename MUST appear in the response.
         """
 
         // Build content array with all images and the prompt
@@ -256,11 +265,46 @@ class ClaudeAPIService {
         Logger.shared.debug("Image analysis response: \(cleanedResponse)")
 
         guard let data = cleanedResponse.data(using: .utf8),
-              let result = try? JSONDecoder().decode([String: String].self, from: data) else {
+              var result = try? JSONDecoder().decode([String: String].self, from: data) else {
             throw APIError.invalidResponse
         }
 
-        return result
+        // Validate categories against allowed list
+        let validCategories = Set(categories)
+        var validatedResult: [String: String] = [:]
+        var invalidAssignments: [(file: String, category: String)] = []
+
+        for (filename, category) in result {
+            if validCategories.contains(category) {
+                validatedResult[filename] = category
+            } else {
+                Logger.shared.warning("Invalid category '\(category)' for file '\(filename)', using fallback")
+                invalidAssignments.append((filename, category))
+
+                // Find closest matching category or use first category
+                let fallback = categories.first ?? "Uncategorized"
+                validatedResult[filename] = fallback
+            }
+        }
+
+        if !invalidAssignments.isEmpty {
+            Logger.shared.error("Claude returned invalid categories: \(invalidAssignments)")
+        }
+
+        // Ensure all input files have categories
+        let inputFilenames = Set(images.map { $0.filename })
+        let assignedFilenames = Set(validatedResult.keys)
+        let missingFilenames = inputFilenames.subtracting(assignedFilenames)
+
+        if !missingFilenames.isEmpty {
+            Logger.shared.warning("Claude didn't categorize \(missingFilenames.count) images, assigning fallback")
+            let fallback = categories.first ?? "Uncategorized"
+            for filename in missingFilenames {
+                validatedResult[filename] = fallback
+            }
+        }
+
+        return validatedResult
     }
 
     // Analyze text content (for PDFs)
@@ -274,15 +318,23 @@ class ClaudeAPIService {
         }
 
         let prompt = """
-        Categorize these documents according to: \(criteria)
+        You are categorizing \(texts.count) documents.
 
+        CRITICAL RULES FOR CATEGORIZATION:
+        1. Use file extension (e.g., .pdf, .docx, .txt) as the PRIMARY factor for categorization
+        2. If criteria mentions "format" or "file type", group by extension (all .pdf together, all .docx together)
+        3. Only use content-based categorization if user explicitly asks to organize by content/subject
+        4. You MUST return a category for EVERY document provided - no exceptions
+        5. Category names MUST exactly match the provided list below
+        6. If a document doesn't fit any category, assign to "Uncategorized"
+
+        Categorization criteria: \(criteria)
         Available categories: \(categoriesList)
 
         Files to categorize:
         \(filesDescription)
 
-        For each file, analyze the content and assign the most appropriate category.
-        If uncertain, use "uncategorized".
+        For each file, analyze and assign the most appropriate category based on the criteria.
 
         Return ONLY valid JSON with this structure (no additional text):
         {
@@ -291,6 +343,7 @@ class ClaudeAPIService {
         }
 
         IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.
+        IMPORTANT: Every filename MUST appear in the response.
         """
 
         let response = try await sendMessage(prompt)
@@ -305,11 +358,46 @@ class ClaudeAPIService {
         Logger.shared.debug("Text analysis response: \(cleanedResponse)")
 
         guard let data = cleanedResponse.data(using: .utf8),
-              let result = try? JSONDecoder().decode([String: String].self, from: data) else {
+              var result = try? JSONDecoder().decode([String: String].self, from: data) else {
             throw APIError.invalidResponse
         }
 
-        return result
+        // Validate categories against allowed list
+        let validCategories = Set(categories)
+        var validatedResult: [String: String] = [:]
+        var invalidAssignments: [(file: String, category: String)] = []
+
+        for (filename, category) in result {
+            if validCategories.contains(category) {
+                validatedResult[filename] = category
+            } else {
+                Logger.shared.warning("Invalid category '\(category)' for file '\(filename)', using fallback")
+                invalidAssignments.append((filename, category))
+
+                // Find closest matching category or use first category
+                let fallback = categories.first ?? "Uncategorized"
+                validatedResult[filename] = fallback
+            }
+        }
+
+        if !invalidAssignments.isEmpty {
+            Logger.shared.error("Claude returned invalid categories: \(invalidAssignments)")
+        }
+
+        // Ensure all input files have categories
+        let inputFilenames = Set(texts.map { $0.filename })
+        let assignedFilenames = Set(validatedResult.keys)
+        let missingFilenames = inputFilenames.subtracting(assignedFilenames)
+
+        if !missingFilenames.isEmpty {
+            Logger.shared.warning("Claude didn't categorize \(missingFilenames.count) documents, assigning fallback")
+            let fallback = categories.first ?? "Uncategorized"
+            for filename in missingFilenames {
+                validatedResult[filename] = fallback
+            }
+        }
+
+        return validatedResult
     }
 
     // Generate descriptive labels for images based on their content
@@ -439,11 +527,18 @@ class ClaudeAPIService {
         let prompt = """
         You are categorizing \(images.count) images and \(texts.count) documents.
 
+        CRITICAL RULES FOR CATEGORIZATION:
+        1. Use file extension (e.g., .jpg, .png, .pdf, .docx) as the PRIMARY factor for categorization
+        2. If criteria mentions "format" or "file type", group by extension (all .png together, all .pdf together, etc.)
+        3. Only use content-based categorization if user explicitly asks to organize by content/subject
+        4. You MUST return a category for EVERY file provided - no exceptions
+        5. Category names MUST exactly match the provided list below
+        6. If a file doesn't fit any category, assign to "Uncategorized"
+
         Categorization criteria: \(criteria)
         Available categories: \(categoriesList)
 
-        For EACH file (both images and documents), analyze its content and assign the most appropriate category.
-        If uncertain, use "uncategorized".
+        For EACH file (both images and documents), analyze and assign the most appropriate category based on the criteria.
 
         Return ONLY valid JSON with this structure (no additional text):
         {
@@ -452,6 +547,7 @@ class ClaudeAPIService {
         }
 
         IMPORTANT: Return ONLY the JSON object, no markdown formatting or additional text.
+        IMPORTANT: Every filename MUST appear in the response.
         """
 
         contentItems.append(.text(prompt))
@@ -483,11 +579,46 @@ class ClaudeAPIService {
         Logger.shared.debug("Mixed files analysis response: \(cleanedResponse)")
 
         guard let data = cleanedResponse.data(using: .utf8),
-              let result = try? JSONDecoder().decode([String: String].self, from: data) else {
+              var result = try? JSONDecoder().decode([String: String].self, from: data) else {
             throw APIError.invalidResponse
         }
 
-        return result
+        // Validate categories against allowed list
+        let validCategories = Set(categories)
+        var validatedResult: [String: String] = [:]
+        var invalidAssignments: [(file: String, category: String)] = []
+
+        for (filename, category) in result {
+            if validCategories.contains(category) {
+                validatedResult[filename] = category
+            } else {
+                Logger.shared.warning("Invalid category '\(category)' for file '\(filename)', using fallback")
+                invalidAssignments.append((filename, category))
+
+                // Find closest matching category or use first category
+                let fallback = categories.first ?? "Uncategorized"
+                validatedResult[filename] = fallback
+            }
+        }
+
+        if !invalidAssignments.isEmpty {
+            Logger.shared.error("Claude returned invalid categories: \(invalidAssignments)")
+        }
+
+        // Ensure all input files have categories
+        let allInputFilenames = Set(images.map { $0.filename } + texts.map { $0.filename })
+        let assignedFilenames = Set(validatedResult.keys)
+        let missingFilenames = allInputFilenames.subtracting(assignedFilenames)
+
+        if !missingFilenames.isEmpty {
+            Logger.shared.warning("Claude didn't categorize \(missingFilenames.count) files, assigning fallback")
+            let fallback = categories.first ?? "Uncategorized"
+            for filename in missingFilenames {
+                validatedResult[filename] = fallback
+            }
+        }
+
+        return validatedResult
     }
 
     // MARK: - Private Methods
@@ -525,41 +656,56 @@ class ClaudeAPIService {
         encoder.keyEncodingStrategy = .convertToSnakeCase
         urlRequest.httpBody = try encoder.encode(request)
 
-        let (data, response) = try await urlSession.data(for: urlRequest)
+        do {
+            let (data, response) = try await urlSession.data(for: urlRequest)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
-        }
-
-        if httpResponse.statusCode != 200 {
-            Logger.shared.error("API Error: Status \(httpResponse.statusCode)")
-            if let errorBody = String(data: data, encoding: .utf8) {
-                Logger.shared.error("Error body: \(errorBody)")
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
             }
 
-            // Handle rate limit with retry (429 error)
-            if httpResponse.statusCode == 429 && retryCount < 3 {
-                let delaySeconds = pow(2.0, Double(retryCount)) * 60.0 // 60s, 120s, 240s
-                Logger.shared.info("Rate limited. Retrying in \(Int(delaySeconds)) seconds...")
+            if httpResponse.statusCode != 200 {
+                Logger.shared.error("API Error: Status \(httpResponse.statusCode)")
+                if let errorBody = String(data: data, encoding: .utf8) {
+                    Logger.shared.error("Error body: \(errorBody)")
+                }
+
+                // Handle rate limit with retry (429 error)
+                if httpResponse.statusCode == 429 && retryCount < 3 {
+                    let delaySeconds = pow(2.0, Double(retryCount)) * 60.0 // 60s, 120s, 240s
+                    Logger.shared.info("Rate limited. Retrying in \(Int(delaySeconds)) seconds...")
+                    try await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
+                    return try await makeRequest(request, retryCount: retryCount + 1)
+                }
+
+                throw APIError.httpError(statusCode: httpResponse.statusCode)
+            }
+
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+
+            do {
+                let response = try decoder.decode(ClaudeResponse.self, from: data)
+                return response
+            } catch {
+                Logger.shared.error("Decoding error", error: error)
+                if let responseString = String(data: data, encoding: .utf8) {
+                    Logger.shared.debug("Response data: \(responseString)")
+                }
+                throw APIError.decodingError(error)
+            }
+        } catch let error as URLError {
+            // Handle network errors with retry
+            if (error.code == .notConnectedToInternet ||
+                error.code == .networkConnectionLost ||
+                error.code == .timedOut) && retryCount < 3 {
+
+                let delaySeconds = Double(retryCount + 1) * 2.0 // 2s, 4s, 6s
+                Logger.shared.warning("Network error (attempt \(retryCount+1)/4): \(error.localizedDescription). Retrying in \(Int(delaySeconds))s...")
                 try await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
                 return try await makeRequest(request, retryCount: retryCount + 1)
             }
 
-            throw APIError.httpError(statusCode: httpResponse.statusCode)
-        }
-
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-
-        do {
-            let response = try decoder.decode(ClaudeResponse.self, from: data)
-            return response
-        } catch {
-            Logger.shared.error("Decoding error", error: error)
-            if let responseString = String(data: data, encoding: .utf8) {
-                Logger.shared.debug("Response data: \(responseString)")
-            }
-            throw APIError.decodingError(error)
+            throw error
         }
     }
 
@@ -576,40 +722,55 @@ class ClaudeAPIService {
         encoder.keyEncodingStrategy = .convertToSnakeCase
         urlRequest.httpBody = try encoder.encode(request)
 
-        let (data, response) = try await urlSession.data(for: urlRequest)
+        do {
+            let (data, response) = try await urlSession.data(for: urlRequest)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
-        }
-
-        if httpResponse.statusCode != 200 {
-            Logger.shared.error("API Error: Status \(httpResponse.statusCode)")
-            if let errorBody = String(data: data, encoding: .utf8) {
-                Logger.shared.error("Error body: \(errorBody)")
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
             }
 
-            if httpResponse.statusCode == 429 && retryCount < 3 {
-                let delaySeconds = pow(2.0, Double(retryCount)) * 60.0
-                Logger.shared.info("Rate limited. Retrying in \(Int(delaySeconds)) seconds...")
+            if httpResponse.statusCode != 200 {
+                Logger.shared.error("API Error: Status \(httpResponse.statusCode)")
+                if let errorBody = String(data: data, encoding: .utf8) {
+                    Logger.shared.error("Error body: \(errorBody)")
+                }
+
+                if httpResponse.statusCode == 429 && retryCount < 3 {
+                    let delaySeconds = pow(2.0, Double(retryCount)) * 60.0
+                    Logger.shared.info("Rate limited. Retrying in \(Int(delaySeconds)) seconds...")
+                    try await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
+                    return try await makeRequestWithSystem(request, retryCount: retryCount + 1)
+                }
+
+                throw APIError.httpError(statusCode: httpResponse.statusCode)
+            }
+
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+
+            do {
+                let response = try decoder.decode(ClaudeResponse.self, from: data)
+                return response
+            } catch {
+                Logger.shared.error("Decoding error", error: error)
+                if let responseString = String(data: data, encoding: .utf8) {
+                    Logger.shared.debug("Response data: \(responseString)")
+                }
+                throw APIError.decodingError(error)
+            }
+        } catch let error as URLError {
+            // Handle network errors with retry
+            if (error.code == .notConnectedToInternet ||
+                error.code == .networkConnectionLost ||
+                error.code == .timedOut) && retryCount < 3 {
+
+                let delaySeconds = Double(retryCount + 1) * 2.0 // 2s, 4s, 6s
+                Logger.shared.warning("Network error (attempt \(retryCount+1)/4): \(error.localizedDescription). Retrying in \(Int(delaySeconds))s...")
                 try await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
                 return try await makeRequestWithSystem(request, retryCount: retryCount + 1)
             }
 
-            throw APIError.httpError(statusCode: httpResponse.statusCode)
-        }
-
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-
-        do {
-            let response = try decoder.decode(ClaudeResponse.self, from: data)
-            return response
-        } catch {
-            Logger.shared.error("Decoding error", error: error)
-            if let responseString = String(data: data, encoding: .utf8) {
-                Logger.shared.debug("Response data: \(responseString)")
-            }
-            throw APIError.decodingError(error)
+            throw error
         }
     }
 
@@ -628,46 +789,61 @@ class ClaudeAPIService {
         encoder.keyEncodingStrategy = .convertToSnakeCase
         urlRequest.httpBody = try encoder.encode(request)
 
-        let (data, response) = try await urlSession.data(for: urlRequest)
+        do {
+            let (data, response) = try await urlSession.data(for: urlRequest)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
-        }
-
-        if httpResponse.statusCode != 200 {
-            Logger.shared.error("API Error: Status \(httpResponse.statusCode)")
-            if let errorBody = String(data: data, encoding: .utf8) {
-                Logger.shared.error("Error body: \(errorBody)")
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
             }
 
-            // Handle rate limit with retry (429 error)
-            if httpResponse.statusCode == 429 && retryCount < 3 {
-                let delaySeconds = pow(2.0, Double(retryCount)) * 60.0
-                Logger.shared.info("Rate limited. Retrying in \(Int(delaySeconds)) seconds...")
+            if httpResponse.statusCode != 200 {
+                Logger.shared.error("API Error: Status \(httpResponse.statusCode)")
+                if let errorBody = String(data: data, encoding: .utf8) {
+                    Logger.shared.error("Error body: \(errorBody)")
+                }
+
+                // Handle rate limit with retry (429 error)
+                if httpResponse.statusCode == 429 && retryCount < 3 {
+                    let delaySeconds = pow(2.0, Double(retryCount)) * 60.0
+                    Logger.shared.info("Rate limited. Retrying in \(Int(delaySeconds)) seconds...")
+                    try await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
+                    return try await makeToolRequest(request, retryCount: retryCount + 1)
+                }
+
+                throw APIError.httpError(statusCode: httpResponse.statusCode)
+            }
+
+            // Log raw response for debugging
+            if let responseString = String(data: data, encoding: .utf8) {
+                Logger.shared.debug("Raw API response: \(responseString.prefix(500))...")
+            }
+
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+
+            do {
+                let response = try decoder.decode(ClaudeToolResponse.self, from: data)
+                return response
+            } catch {
+                Logger.shared.error("Decoding error", error: error)
+                if let responseString = String(data: data, encoding: .utf8) {
+                    Logger.shared.debug("Response data: \(responseString)")
+                }
+                throw APIError.decodingError(error)
+            }
+        } catch let error as URLError {
+            // Handle network errors with retry
+            if (error.code == .notConnectedToInternet ||
+                error.code == .networkConnectionLost ||
+                error.code == .timedOut) && retryCount < 3 {
+
+                let delaySeconds = Double(retryCount + 1) * 2.0 // 2s, 4s, 6s
+                Logger.shared.warning("Network error (attempt \(retryCount+1)/4): \(error.localizedDescription). Retrying in \(Int(delaySeconds))s...")
                 try await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
                 return try await makeToolRequest(request, retryCount: retryCount + 1)
             }
 
-            throw APIError.httpError(statusCode: httpResponse.statusCode)
-        }
-
-        // Log raw response for debugging
-        if let responseString = String(data: data, encoding: .utf8) {
-            Logger.shared.debug("Raw API response: \(responseString.prefix(500))...")
-        }
-
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-
-        do {
-            let response = try decoder.decode(ClaudeToolResponse.self, from: data)
-            return response
-        } catch {
-            Logger.shared.error("Decoding error", error: error)
-            if let responseString = String(data: data, encoding: .utf8) {
-                Logger.shared.debug("Response data: \(responseString)")
-            }
-            throw APIError.decodingError(error)
+            throw error
         }
     }
 

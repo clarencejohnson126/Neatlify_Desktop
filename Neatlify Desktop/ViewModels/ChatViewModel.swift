@@ -21,6 +21,17 @@ class ChatViewModel: ObservableObject {
     init() {
         // Add welcome message
         addWelcomeMessage()
+
+        // Listen for organization completion notifications
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name("OrganizationCompleted"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let message = notification.userInfo?["message"] as? String else { return }
+
+            self?.addSystemMessage(message)
+        }
     }
 
     private func addWelcomeMessage() {

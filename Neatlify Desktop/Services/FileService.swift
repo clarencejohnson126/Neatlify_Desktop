@@ -136,10 +136,13 @@ class FileService {
     func organizeFiles(_ files: [FileItem], plan: OrganizationPlan, folderMap: [String: URL], progressHandler: @escaping @MainActor (Int, Int) -> Void) async throws {
         var movedCount = 0
         var skippedCount = 0
+        var errorCount = 0
 
         for file in files {
             guard let category = plan.fileAssignments[file.id],
                   let destinationFolder = folderMap[category] else {
+                Logger.shared.warning("Skipping file '\(file.name)' - no category or folder mapping")
+                skippedCount += 1
                 continue
             }
 
@@ -155,18 +158,23 @@ class FileService {
             do {
                 try await moveFile(from: file.url, to: destinationURL)
                 movedCount += 1
+                Logger.shared.debug("Moved file to \(category): \(file.name)")
                 // Call progress handler on main thread
                 await progressHandler(movedCount, files.count)
             } catch {
                 Logger.shared.error("Failed to move file: \(file.name)", error: error)
+                errorCount += 1
                 // Continue with other files even if one fails
             }
         }
 
         if skippedCount > 0 {
-            Logger.shared.info("Skipped \(skippedCount) already-moved files")
+            Logger.shared.info("Skipped \(skippedCount) files")
         }
-        Logger.shared.info("Organization complete: \(movedCount)/\(files.count) files moved")
+        if errorCount > 0 {
+            Logger.shared.error("Encountered \(errorCount) errors during file moves")
+        }
+        Logger.shared.info("Organization complete: \(movedCount)/\(files.count) files moved successfully")
     }
 
     // Rename file in place (for labeling mode)

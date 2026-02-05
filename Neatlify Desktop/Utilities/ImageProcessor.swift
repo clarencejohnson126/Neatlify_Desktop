@@ -31,22 +31,39 @@ class ImageProcessor {
         return jpegData.base64EncodedString()
     }
 
-    // Encode multiple images in batch
+    // Encode multiple images in batch, handling individual failures gracefully
     static func encodeImages(at urls: [URL]) async throws -> [(url: URL, base64: String)] {
-        return try await withThrowingTaskGroup(of: (URL, String).self) { group in
+        var encodedImages: [(url: URL, base64: String)] = []
+        var failedImages: [String] = []
+
+        await withTaskGroup(of: (URL, String?, String?).self) { group in
             for url in urls {
                 group.addTask {
-                    let encoded = try encodeImage(at: url)
-                    return (url, encoded)
+                    do {
+                        let encoded = try encodeImage(at: url)
+                        return (url, encoded, nil)
+                    } catch {
+                        Logger.shared.error("Failed to encode \(url.lastPathComponent): \(error)")
+                        return (url, nil, url.lastPathComponent)
+                    }
                 }
             }
 
-            var results: [(URL, String)] = []
-            for try await result in group {
-                results.append(result)
+            for await result in group {
+                let (url, encoded, failed) = result
+                if let encoded = encoded {
+                    encodedImages.append((url: url, base64: encoded))
+                } else if let failed = failed {
+                    failedImages.append(failed)
+                }
             }
-            return results
         }
+
+        if !failedImages.isEmpty {
+            Logger.shared.warning("\(failedImages.count) images failed encoding: \(failedImages.joined(separator: ", "))")
+        }
+
+        return encodedImages
     }
 
     // Resize image to reduce token usage
