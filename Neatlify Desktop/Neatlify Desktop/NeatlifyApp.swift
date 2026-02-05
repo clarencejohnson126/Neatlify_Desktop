@@ -68,6 +68,20 @@ struct NeatlifyApp: App {
                         NSApplication.shared.terminate(nil)
                     }
                 }
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SessionDidUpdate"))) { _ in
+                    // Reload session from disk (picks up updated history and stats)
+                    Logger.shared.info("Session update received, reloading from disk...")
+                    let updatedSession = UserSession.load()
+                    DispatchQueue.main.async {
+                        userSession.hasCompletedOnboarding = updatedSession.hasCompletedOnboarding
+                        userSession.fileCredits = updatedSession.fileCredits
+                        userSession.lastCleanupDate = updatedSession.lastCleanupDate
+                        userSession.totalCleanupsPerformed = updatedSession.totalCleanupsPerformed
+                        userSession.totalFilesProcessed = updatedSession.totalFilesProcessed
+                        userSession.organizationHistory = updatedSession.organizationHistory
+                        userSession.objectWillChange.send()
+                    }
+                }
                 .onOpenURL { url in
                     handleIncomingURL(url)
                 }

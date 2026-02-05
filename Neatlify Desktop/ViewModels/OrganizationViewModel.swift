@@ -222,6 +222,9 @@ class OrganizationViewModel: ObservableObject {
             // Notify UI to refresh credits from saved state
             NotificationCenter.default.post(name: .creditsDidChange, object: nil)
 
+            // Notify UI to reload session (picks up updated history and stats)
+            NotificationCenter.default.post(name: NSNotification.Name("SessionDidUpdate"), object: nil)
+
             // Complete
             currentStep = .completed
             isExecuting = false
@@ -269,6 +272,9 @@ class OrganizationViewModel: ObservableObject {
                 status: .cancelled
             )
             session.saveOrganizationRecord(record)
+
+            // Notify UI to reload session
+            NotificationCenter.default.post(name: NSNotification.Name("SessionDidUpdate"), object: nil)
         }
 
         isOrganizing = false
