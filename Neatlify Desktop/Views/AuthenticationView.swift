@@ -158,6 +158,10 @@ struct AuthenticationView: View {
     }
 
     private func handleAuth() {
+        print("🎯 Button clicked! Starting auth flow...")
+        print("📧 Email: \(email)")
+        print("🔒 Mode: \(isSignUp ? "SignUp" : "SignIn")")
+
         isLoading = true
         errorMessage = ""
 

@@ -62,12 +62,18 @@ class AuthenticationService {
 
     /// Sign in with email and password
     func signIn(email: String, password: String) async throws -> AuthResponse {
+        print("🔓 SignIn request starting for: \(email)")
+
         guard let url = URL(string: "\(baseURL)/auth/v1/token?grant_type=password") else {
+            print("❌ Invalid URL constructed")
             throw AuthError.invalidURL
         }
 
+        print("📡 Making request to: \(url)")
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 30 // 30 second timeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(anonKey, forHTTPHeaderField: "apikey")
 
@@ -78,7 +84,11 @@ class AuthenticationService {
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
+        print("⏳ Waiting for response...")
+
         let (data, response) = try await URLSession.shared.data(for: request)
+
+        print("📨 Response received, status: \(String(describing: response))")
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw AuthError.invalidResponse
