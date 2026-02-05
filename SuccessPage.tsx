@@ -34,8 +34,8 @@ const SuccessPage: React.FC = () => {
       setSessionId(sid);
       verifyPayment(sid);
 
-      // Attempt to open the desktop app
-      const redirectUrl = `neatlify://activate?session_id=${sid}`;
+      // Attempt to open the desktop app with payment verification
+      const redirectUrl = `neatlify://checkout/success?session_id=${sid}`;
       setTimeout(() => {
         window.location.href = redirectUrl;
       }, 1000);
@@ -162,7 +162,7 @@ const SuccessPage: React.FC = () => {
         {status === 'success' && sessionId && (
           <div className="mt-8 mb-6">
             <a
-              href={`neatlify://activate?session_id=${sessionId}`}
+              href={`neatlify://checkout/success?session_id=${sessionId}`}
               className="inline-block px-8 py-4 bg-[#29AB87] text-white text-xl font-bold sketch-border cartoon-shadow-hover transition-all"
             >
               ✨ Open Neatlify App
