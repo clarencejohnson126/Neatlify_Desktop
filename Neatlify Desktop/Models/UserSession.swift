@@ -168,9 +168,26 @@ class UserSession: ObservableObject, Codable {
         if let email = AuthSessionStorage.shared.getUserEmail(),
            let _ = AuthSessionStorage.shared.getAccessToken() {
 
-            // DEFENSIVE: Clear stale data if email mismatch
+            // CRITICAL: Clear generic key if it contains different user's data
+            // This prevents stale cached data from previous installs/users
+            var hadStaleGenericData = false
+            if let genericData = UserDefaults.standard.data(forKey: "UserSession"),
+               let genericSession = try? JSONDecoder().decode(UserSession.self, from: genericData),
+               let genericEmail = genericSession.userEmail,
+               genericEmail != email {
+                Logger.shared.warning("Clearing generic key - contains different user's data (\(genericEmail)). Stale credits: \(genericSession.fileCredits)")
+                UserDefaults.standard.removeObject(forKey: "UserSession")
+                hadStaleGenericData = true
+            }
+
+            // DEFENSIVE: Clear stale data if email mismatch (in-memory)
             if let cachedEmail = userEmail, cachedEmail != email {
                 Logger.shared.warning("Email mismatch! Cached: \(cachedEmail), Auth: \(email). Clearing stale data.")
+                fileCredits = 0
+                organizationHistory = []
+            } else if hadStaleGenericData && userEmail != email {
+                // Also clear if we just removed stale generic data
+                Logger.shared.info("Clearing in-memory data from stale generic key")
                 fileCredits = 0
                 organizationHistory = []
             }
@@ -178,7 +195,7 @@ class UserSession: ObservableObject, Codable {
             userEmail = email
             isAuthenticatedWithSupabase = true
             save()  // ✅ IMPORTANT: Save to UserDefaults so other views can see it
-            Logger.shared.info("User authenticated: \(email)")
+            Logger.shared.info("User authenticated: \(email), fileCredits: \(fileCredits)")
 
             // Sync credits from server (source of truth)
             Task {
@@ -475,9 +492,17 @@ class UserSession: ObservableObject, Codable {
             }
         }
 
-        // Fallback to generic key (backward compatibility)
+        // Fallback to generic key ONLY if it's for the same authenticated user
         if let data = UserDefaults.standard.data(forKey: "UserSession"),
            let session = try? JSONDecoder().decode(UserSession.self, from: data) {
+            // CRITICAL: Don't load generic key if it's for a different user
+            if let currentEmail = AuthSessionStorage.shared.getUserEmail(),
+               let genericEmail = session.userEmail,
+               currentEmail != genericEmail {
+                Logger.shared.warning("Generic key has different user (\(genericEmail)). Not loading stale data.")
+                UserDefaults.standard.removeObject(forKey: "UserSession")
+                return UserSession()
+            }
             Logger.shared.info("Loaded session from generic key (backward compatibility)")
             return session
         }
