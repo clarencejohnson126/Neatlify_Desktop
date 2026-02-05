@@ -20,10 +20,41 @@ class SupabaseService {
     private func addAuthHeaders(to request: inout URLRequest) {
         request.setValue(anonKey, forHTTPHeaderField: "apikey")
         if let token = AuthSessionStorage.shared.getAccessToken() {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            Logger.shared.debug("Authorization header added with token")
+            // Check if token is valid (not expired) before adding it
+            do {
+                let payload = try decodeJWTPayload(token)
+                let now = Int(Date().timeIntervalSince1970)
+                let timeUntilExpiry = (payload.exp ?? now) - now
+
+                if timeUntilExpiry > 0 {
+                    // Token is still valid
+                    let tokenPrefix = String(token.prefix(20))
+                    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                    Logger.shared.info("✅ Authorization header added with token: \(tokenPrefix)...")
+                } else {
+                    // Token is expired - don't send it, rely on apikey instead
+                    Logger.shared.warning("⚠️ Access token expired (\(timeUntilExpiry)s), using apikey only")
+                }
+            } catch {
+                Logger.shared.warning("⚠️ Could not validate token, using apikey only: \(error)")
+            }
+        }
+    }
+
+    private func logSupabaseErrorResponse(
+        context: String,
+        statusCode: Int,
+        httpResponse: HTTPURLResponse,
+        data: Data
+    ) {
+        let sbRequestId = httpResponse.value(forHTTPHeaderField: "sb-request-id") ?? "n/a"
+        let denoExecutionId = httpResponse.value(forHTTPHeaderField: "x-deno-execution-id") ?? "n/a"
+        let debugIds = "sb-request-id=\(sbRequestId) x-deno-execution-id=\(denoExecutionId)"
+
+        if let body = String(data: data, encoding: .utf8), !body.isEmpty {
+            Logger.shared.error("\(context) error: \(statusCode) (\(debugIds)) body=\(body)")
         } else {
-            Logger.shared.warning("⚠️  No access token available! Authorization header NOT added - this will cause 401 errors")
+            Logger.shared.error("\(context) error: \(statusCode) (\(debugIds)) body=<empty or non-utf8>")
         }
     }
 
@@ -118,11 +149,25 @@ class SupabaseService {
         }
 
         if httpResponse.statusCode != 200 {
-            Logger.shared.error("Supabase API error: \(httpResponse.statusCode)")
+            logSupabaseErrorResponse(
+                context: "Supabase check-credits",
+                statusCode: httpResponse.statusCode,
+                httpResponse: httpResponse,
+                data: data
+            )
             throw SupabaseError.apiError(statusCode: httpResponse.statusCode)
         }
 
-        let result = try JSONDecoder().decode(CreditCheckResponse.self, from: data)
+        let result: CreditCheckResponse
+        do {
+            result = try JSONDecoder().decode(CreditCheckResponse.self, from: data)
+        } catch {
+            Logger.shared.error("Failed to decode check-credits response: \(error)")
+            if let body = String(data: data, encoding: .utf8) {
+                Logger.shared.error("Raw check-credits response body: \(body)")
+            }
+            throw error
+        }
 
         if result.allowed {
             return .allowed(
@@ -140,6 +185,9 @@ class SupabaseService {
 
     /// Deduct credits after successful organization (server-side)
     func deductCredits(userEmail: String, fileCount: Int) async throws -> CreditDeductResult {
+        // CRITICAL: Refresh token if needed before making API call
+        await validateSessionAndRefreshIfNeeded()
+
         guard let url = URL(string: "\(baseURL)/check-credits") else {
             throw SupabaseError.invalidURL
         }
@@ -164,11 +212,25 @@ class SupabaseService {
         }
 
         if httpResponse.statusCode != 200 {
-            Logger.shared.error("Supabase deduct error: \(httpResponse.statusCode)")
+            logSupabaseErrorResponse(
+                context: "Supabase deduct credits",
+                statusCode: httpResponse.statusCode,
+                httpResponse: httpResponse,
+                data: data
+            )
             throw SupabaseError.apiError(statusCode: httpResponse.statusCode)
         }
 
-        let result = try JSONDecoder().decode(CreditDeductResponse.self, from: data)
+        let result: CreditDeductResponse
+        do {
+            result = try JSONDecoder().decode(CreditDeductResponse.self, from: data)
+        } catch {
+            Logger.shared.error("Failed to decode deduct response: \(error)")
+            if let body = String(data: data, encoding: .utf8) {
+                Logger.shared.error("Raw deduct response body: \(body)")
+            }
+            throw error
+        }
 
         if result.allowed {
             return .success(
@@ -182,6 +244,9 @@ class SupabaseService {
 
     /// Fetch current credit balance for a user
     func getCredits(userEmail: String) async throws -> Int {
+        // CRITICAL: Refresh token if needed before making API call
+        await validateSessionAndRefreshIfNeeded()
+
         let result = try await checkCredits(userEmail: userEmail, fileCount: 0)
 
         switch result {
@@ -254,6 +319,9 @@ class SupabaseService {
 
     /// Redeem a promo code and add credits to user's account
     func redeemPromoCode(code: String, userEmail: String) async throws -> PromoCodeResult {
+        // CRITICAL: Refresh token if needed before making API call
+        await validateSessionAndRefreshIfNeeded()
+
         guard let url = URL(string: "\(baseURL)/redeem-promo-code") else {
             throw SupabaseError.invalidURL
         }
@@ -321,6 +389,9 @@ class SupabaseService {
         purchaseDate: Date,
         userEmail: String
     ) async throws -> AppleTransactionResult {
+        // CRITICAL: Refresh token if needed before making API call
+        await validateSessionAndRefreshIfNeeded()
+
         guard let url = URL(string: "\(baseURL)/verify-apple-transaction") else {
             throw SupabaseError.invalidURL
         }
