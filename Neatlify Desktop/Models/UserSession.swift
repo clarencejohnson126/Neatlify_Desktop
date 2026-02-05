@@ -254,7 +254,7 @@ class UserSession: ObservableObject, Codable {
         Logger.shared.info("🔐 Authenticating from deep link: \(userEmail)")
 
         // Check if switching users
-        if let currentEmail = userEmail, currentEmail != userEmail {
+        if let currentEmail = self.userEmail, currentEmail != userEmail {
             Logger.shared.warning("Account switch via deep link: \(currentEmail) → \(userEmail)")
         }
 
