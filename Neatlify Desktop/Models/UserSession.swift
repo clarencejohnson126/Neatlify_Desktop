@@ -312,6 +312,9 @@ class UserSession: ObservableObject, Codable {
     func syncCreditsFromServer() async {
         guard let email = userEmail else { return }
         do {
+            // CRITICAL: Validate and refresh token if needed before calling API
+            await SupabaseService.shared.validateSessionAndRefreshIfNeeded()
+
             let serverCredits = try await SupabaseService.shared.getCredits(userEmail: email)
             await MainActor.run {
                 // DEFENSIVE: Verify email still matches before updating
@@ -321,6 +324,7 @@ class UserSession: ObservableObject, Codable {
                 }
                 self.fileCredits = serverCredits
                 self.save()
+                Logger.shared.info("Credits synced successfully: \(serverCredits)")
             }
         } catch {
             Logger.shared.error("Failed to sync credits: \(error)")

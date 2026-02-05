@@ -21,6 +21,9 @@ class SupabaseService {
         request.setValue(anonKey, forHTTPHeaderField: "apikey")
         if let token = AuthSessionStorage.shared.getAccessToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            Logger.shared.debug("Authorization header added with token")
+        } else {
+            Logger.shared.warning("⚠️  No access token available! Authorization header NOT added - this will cause 401 errors")
         }
     }
 

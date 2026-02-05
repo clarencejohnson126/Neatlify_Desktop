@@ -141,9 +141,10 @@ struct NeatlifyApp: App {
             return
         }
 
-        // Handle checkout paths
-        if path.contains("checkout/success") {
-            // Parse query parameters
+        // Handle payment verification - supports both new and legacy formats
+        // New: neatlify://checkout/success?session_id=...
+        // Legacy: neatlify://activate?session_id=...
+        if path.contains("checkout/success") || url.host == "activate" {
             guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
                   let queryItems = components.queryItems else {
                 showError("Invalid payment URL")
@@ -152,6 +153,7 @@ struct NeatlifyApp: App {
 
             // Look for session_id parameter
             if let sessionId = queryItems.first(where: { $0.name == "session_id" })?.value {
+                Logger.shared.info("Processing payment verification with session: \(sessionId)")
                 verifyPayment(sessionId: sessionId)
             } else {
                 showError("Missing session ID in payment URL")
