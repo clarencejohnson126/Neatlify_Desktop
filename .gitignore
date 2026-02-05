@@ -30,3 +30,4 @@ Neatlify Desktop/build/
 *.xcuserstate
 xcuserdata/
 *.xcscheme
+/build/
