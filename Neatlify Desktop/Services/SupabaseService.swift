@@ -81,6 +81,7 @@ class SupabaseService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        addAuthHeaders(to: &request)
 
         let body: [String: Any] = [
             "user_email": userEmail,
@@ -194,6 +195,7 @@ class SupabaseService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        addAuthHeaders(to: &request)
 
         let body: [String: Any] = [
             "promo_code": code,
@@ -260,6 +262,7 @@ class SupabaseService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        addAuthHeaders(to: &request)
 
         let body: [String: Any] = [
             "transaction_id": transactionId,

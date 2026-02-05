@@ -103,6 +103,15 @@ class UserSession: ObservableObject, Codable {
 
     init() {}
 
+    // MARK: - User-Specific Cache Key
+
+    private var userDefaultsKey: String {
+        if let email = userEmail {
+            return "UserSession_\(email.replacingOccurrences(of: "@", with: "_at_"))"
+        }
+        return "UserSession"
+    }
+
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         hasCompletedOnboarding = try container.decode(Bool.self, forKey: .hasCompletedOnboarding)
@@ -156,47 +165,72 @@ class UserSession: ObservableObject, Codable {
 
     /// Check auth status from storage and update session
     func checkAuthStatus() {
-        // Check if user is authenticated via Supabase
         if let email = AuthSessionStorage.shared.getUserEmail(),
            let _ = AuthSessionStorage.shared.getAccessToken() {
+
+            // DEFENSIVE: Clear stale data if email mismatch
+            if let cachedEmail = userEmail, cachedEmail != email {
+                Logger.shared.warning("Email mismatch! Cached: \(cachedEmail), Auth: \(email). Clearing stale data.")
+                fileCredits = 0
+                organizationHistory = []
+            }
+
             userEmail = email
             isAuthenticatedWithSupabase = true
             save()  // ✅ IMPORTANT: Save to UserDefaults so other views can see it
             Logger.shared.info("User authenticated: \(email)")
 
-            // Auto-sync credits from server
+            // Sync credits from server (source of truth)
             Task {
                 await syncCreditsFromServer()
             }
         } else {
-            Logger.shared.info("No active authentication found")
+            Logger.shared.info("No active authentication")
+
+            // Clear cached credits if no valid session
+            if fileCredits > 0 {
+                Logger.shared.warning("Clearing cached credits - no valid session")
+                fileCredits = 0
+                save()
+            }
         }
     }
 
     /// Unlink account (both manual linking and Supabase Auth)
     func unlinkAccount() {
+        let emailForCleanup = userEmail
+
+        // Clear in-memory state FIRST
         userEmail = nil
         fileCredits = 0
         userFullName = nil
         organizationHistory = []
         isAuthenticatedWithSupabase = false
 
-        // Clear Supabase Auth session
+        // Clear auth session
         AuthSessionStorage.shared.clearSession()
         AuthenticationService.shared.signOut()
 
-        // Remove from keychain - use helper function
+        // Remove user-specific UserDefaults
+        if let email = emailForCleanup {
+            let emailKey = "UserSession_\(email.replacingOccurrences(of: "@", with: "_at_"))"
+            UserDefaults.standard.removeObject(forKey: emailKey)
+            Logger.shared.info("Removed UserDefaults for: \(email)")
+        }
+
+        // Clear generic key for safety
+        UserDefaults.standard.removeObject(forKey: "UserSession")
+
+        // Clear email from keychain
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: Self.keychainEmailKey,
             kSecAttrService as String: "com.neatlify.desktop"
         ]
-        let status = SecItemDelete(query as CFDictionary)
-        Logger.shared.info("Keychain deletion status: \(status)")
+        SecItemDelete(query as CFDictionary)
 
-        // Clear from UserDefaults
-        UserDefaults.standard.removeObject(forKey: "UserSession")
-        save()
+        UserDefaults.standard.synchronize()
+        Logger.shared.info("Account unlinked - all data cleared")
     }
 
     /// Sync credits from server
@@ -205,6 +239,11 @@ class UserSession: ObservableObject, Codable {
         do {
             let serverCredits = try await SupabaseService.shared.getCredits(userEmail: email)
             await MainActor.run {
+                // DEFENSIVE: Verify email still matches before updating
+                guard self.userEmail == email else {
+                    Logger.shared.warning("Email changed during sync - ignoring stale result")
+                    return
+                }
                 self.fileCredits = serverCredits
                 self.save()
             }
@@ -420,15 +459,29 @@ class UserSession: ObservableObject, Codable {
 
     func save() {
         if let encoded = try? JSONEncoder().encode(self) {
-            UserDefaults.standard.set(encoded, forKey: "UserSession")
+            UserDefaults.standard.set(encoded, forKey: userDefaultsKey)
+            Logger.shared.info("Session saved with key: \(userDefaultsKey)")
         }
     }
 
     static func load() -> UserSession {
+        // Try user-specific key first
+        if let email = AuthSessionStorage.shared.getUserEmail() {
+            let key = "UserSession_\(email.replacingOccurrences(of: "@", with: "_at_"))"
+            if let data = UserDefaults.standard.data(forKey: key),
+               let session = try? JSONDecoder().decode(UserSession.self, from: data) {
+                Logger.shared.info("Loaded session for: \(email)")
+                return session
+            }
+        }
+
+        // Fallback to generic key (backward compatibility)
         if let data = UserDefaults.standard.data(forKey: "UserSession"),
            let session = try? JSONDecoder().decode(UserSession.self, from: data) {
+            Logger.shared.info("Loaded session from generic key (backward compatibility)")
             return session
         }
+
         return UserSession()
     }
 }

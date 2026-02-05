@@ -34,16 +34,27 @@ struct NeatlifyApp: App {
                     // Initialize StoreKit transaction listener for App Store version
                     _ = StoreKitManager.shared
 
-                    // Check if user has active Supabase Auth session
+                    // CRITICAL: Check auth FIRST before using cached data
                     userSession.checkAuthStatus()
 
-                    // Attempt to auto-sync credits from server
-                    // This helps users see their purchased credits without manual linking
                     Task {
-                        // Check if we have cached credits - if so, try to sync server version
-                        if userSession.fileCredits > 0 {
-                            Logger.shared.info("Found cached credits: \(userSession.fileCredits), syncing from server...")
+                        // Brief delay for auth verification
+                        try? await Task.sleep(nanoseconds: 100_000_000)
+
+                        // Only sync if valid authenticated session
+                        if userSession.isAccountLinked,
+                           let email = AuthSessionStorage.shared.getUserEmail() {
+                            Logger.shared.info("Valid session for \(email), syncing credits...")
                             await userSession.syncCreditsFromServer()
+                        } else {
+                            Logger.shared.info("No valid session - skipping credit sync")
+                            await MainActor.run {
+                                if userSession.fileCredits > 0 {
+                                    Logger.shared.warning("Clearing stale credits on launch")
+                                    userSession.fileCredits = 0
+                                    userSession.save()
+                                }
+                            }
                         }
                     }
                 }
