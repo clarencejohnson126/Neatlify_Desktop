@@ -295,3 +295,96 @@ struct AnyCodable: Codable {
         }
     }
 }
+
+// MARK: - Token Validation Extension
+
+extension AuthenticationService {
+    struct DeepLinkParams {
+        let accessToken: String
+        let refreshToken: String
+        let userEmail: String
+        let expiresAt: Int
+        let issuedAt: Int
+    }
+
+    struct TokenPayload: Decodable {
+        let exp: Int?
+        let iat: Int?
+        let email: String?
+        let sub: String?
+    }
+
+    static func validateDeepLinkParams(
+        accessToken: String?,
+        refreshToken: String?,
+        userEmail: String?,
+        exp: String?,
+        iat: String?
+    ) -> Result<DeepLinkParams, String> {
+        // Check all required parameters present
+        guard let accessToken = accessToken, !accessToken.isEmpty else {
+            Logger.shared.error("Missing access token")
+            return .failure("Missing access token")
+        }
+
+        guard let refreshToken = refreshToken, !refreshToken.isEmpty else {
+            Logger.shared.error("Missing refresh token")
+            return .failure("Missing refresh token")
+        }
+
+        guard let userEmail = userEmail, !userEmail.isEmpty else {
+            Logger.shared.error("Missing user email")
+            return .failure("Missing user email")
+        }
+
+        guard let expStr = exp, let expiresAt = Int(expStr) else {
+            Logger.shared.error("Invalid or missing expiration")
+            return .failure("Invalid expiration")
+        }
+
+        guard let iatStr = iat, let issuedAt = Int(iatStr) else {
+            Logger.shared.error("Invalid or missing issued-at timestamp")
+            return .failure("Invalid timestamp")
+        }
+
+        // Validate access token JWT
+        if !validateJWTFormat(accessToken) {
+            Logger.shared.error("Invalid access token format")
+            return .failure("Invalid token format")
+        }
+
+        // Validate token not expired
+        let now = Int(Date().timeIntervalSince1970)
+        if expiresAt <= now {
+            Logger.shared.warning("Token expired at \(expiresAt), now is \(now)")
+            return .failure("Token expired")
+        }
+
+        // Validate email format
+        guard validateEmailFormat(userEmail) else {
+            Logger.shared.error("Invalid email format: \(userEmail)")
+            return .failure("Invalid email format")
+        }
+
+        Logger.shared.info("✅ Deep link parameters validated successfully for: \(userEmail)")
+
+        return .success(DeepLinkParams(
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            userEmail: userEmail,
+            expiresAt: expiresAt,
+            issuedAt: issuedAt
+        ))
+    }
+
+    private static func validateJWTFormat(_ token: String) -> Bool {
+        let parts = token.split(separator: ".", omittingEmptySubsequences: false)
+        return parts.count == 3
+    }
+
+    private static func validateEmailFormat(_ email: String) -> Bool {
+        let emailRegex = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+        let predicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
+        return predicate.evaluate(with: email)
+    }
+}

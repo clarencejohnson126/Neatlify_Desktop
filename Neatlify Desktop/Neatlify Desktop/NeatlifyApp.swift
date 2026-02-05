@@ -237,7 +237,7 @@ struct NeatlifyApp: App {
         Logger.shared.info("Auth params received - email: \(userEmail ?? "unknown")")
 
         // Validate all parameters
-        let validationResult = AuthTokenValidator.validateDeepLinkParams(
+        let validationResult = AuthenticationService.validateDeepLinkParams(
             accessToken: accessToken,
             refreshToken: refreshToken,
             userEmail: userEmail,
@@ -256,7 +256,7 @@ struct NeatlifyApp: App {
         }
     }
 
-    private func authenticateFromDeepLink(_ params: AuthTokenValidator.DeepLinkParams) {
+    private func authenticateFromDeepLink(_ params: AuthenticationService.DeepLinkParams) {
         Logger.shared.info("🔄 Authenticating from deep link for: \(params.userEmail)")
 
         // Check if switching users
