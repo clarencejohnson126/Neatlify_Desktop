@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import { translations, Language } from './translations';
+import { getSessionTokens, validateEmail, validateJWT } from './lib/authTokenHandler';
 
 const SuccessPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [sessionId, setSessionId] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
@@ -34,7 +35,23 @@ const SuccessPage: React.FC = () => {
       setSessionId(sid);
       verifyPayment(sid);
 
-      // Attempt to open the desktop app with payment verification
+      // Attempt to open the desktop app with auth tokens for credit sync
+      // Priority: Send auth tokens (auth-callback) so app can authenticate
+      // Fallback: Send checkout/success for payment verification
+      if (session?.access_token && user?.email) {
+        // We have tokens - use auth-callback format for proper authentication
+        const tokens = getSessionTokens(session, user);
+        if (tokens && validateJWT(tokens.accessToken) && validateEmail(user.email)) {
+          const authDeepLink = `neatlify://auth-callback?access_token=${tokens.accessToken}&refresh_token=${tokens.refreshToken}&user_email=${encodeURIComponent(user.email)}&exp=${tokens.expiresAt}&iat=${tokens.issuedAt}`;
+          console.log('Sending auth-callback deep link for payment success');
+          setTimeout(() => {
+            window.location.href = authDeepLink;
+          }, 1000);
+          return;
+        }
+      }
+
+      // Fallback: Send checkout/success with session_id if no tokens available
       const redirectUrl = `neatlify://checkout/success?session_id=${sid}`;
       setTimeout(() => {
         window.location.href = redirectUrl;
@@ -82,6 +99,19 @@ const SuccessPage: React.FC = () => {
     navigator.clipboard.writeText(sessionId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const getAppDeepLink = (): string => {
+    // Generate the best deep link based on available auth data
+    if (session?.access_token && user?.email) {
+      const tokens = getSessionTokens(session, user);
+      if (tokens && validateJWT(tokens.accessToken) && validateEmail(user.email)) {
+        // Send auth tokens for proper authentication
+        return `neatlify://auth-callback?access_token=${tokens.accessToken}&refresh_token=${tokens.refreshToken}&user_email=${encodeURIComponent(user.email)}&exp=${tokens.expiresAt}&iat=${tokens.issuedAt}`;
+      }
+    }
+    // Fallback to payment verification
+    return `neatlify://checkout/success?session_id=${sessionId}`;
   };
 
   return (
@@ -162,7 +192,7 @@ const SuccessPage: React.FC = () => {
         {status === 'success' && sessionId && (
           <div className="mt-8 mb-6">
             <a
-              href={`neatlify://checkout/success?session_id=${sessionId}`}
+              href={getAppDeepLink()}
               className="inline-block px-8 py-4 bg-[#29AB87] text-white text-xl font-bold sketch-border cartoon-shadow-hover transition-all"
             >
               ✨ Open Neatlify App
