@@ -185,6 +185,16 @@ struct AuthenticationView: View {
                     // Save session and user info
                     if let session = response.session, let user = response.user {
                         print("💾 Saving session - User: \(user.email)")
+
+                        // CRITICAL: Clear any old session before saving new one
+                        // This prevents auto-login with previous user's account
+                        let currentEmail = AuthSessionStorage.shared.getUserEmail()
+                        if let currentEmail = currentEmail, currentEmail != user.email {
+                            print("🔄 Switching users: \(currentEmail) → \(user.email)")
+                            print("🗑️  Clearing old Keychain session for: \(currentEmail)")
+                            AuthSessionStorage.shared.clearSession()
+                        }
+
                         AuthSessionStorage.shared.saveSession(session, userId: user.id, email: user.email)
                         Logger.shared.info("Auth successful for user: \(user.email)")
                         print("✅ Session saved successfully")

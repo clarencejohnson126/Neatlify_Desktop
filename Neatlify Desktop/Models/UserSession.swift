@@ -197,28 +197,29 @@ class UserSession: ObservableObject, Codable {
         if let email = AuthSessionStorage.shared.getUserEmail(),
            let _ = AuthSessionStorage.shared.getAccessToken() {
 
+            // CRITICAL: User is switching accounts - clear ALL old user data
+            // This handles the case where AuthSessionStorage was already updated but UserDefaults still has old user
+            if let currentEmail = userEmail, currentEmail != email {
+                Logger.shared.warning("🔄 USER SWITCH DETECTED! Old: \(currentEmail) → New: \(email)")
+
+                // Clear the old user's UserDefaults key
+                let oldKey = "UserSession_\(currentEmail.replacingOccurrences(of: "@", with: "_at_"))"
+                UserDefaults.standard.removeObject(forKey: oldKey)
+                Logger.shared.info("Removed old UserDefaults key: \(oldKey)")
+
+                // Clear in-memory data
+                fileCredits = 0
+                organizationHistory = []
+            }
+
             // CRITICAL: Clear generic key if it contains different user's data
             // This prevents stale cached data from previous installs/users
-            var hadStaleGenericData = false
             if let genericData = UserDefaults.standard.data(forKey: "UserSession"),
                let genericSession = try? JSONDecoder().decode(UserSession.self, from: genericData),
                let genericEmail = genericSession.userEmail,
                genericEmail != email {
                 Logger.shared.warning("Clearing generic key - contains different user's data (\(genericEmail)). Stale credits: \(genericSession.fileCredits)")
                 UserDefaults.standard.removeObject(forKey: "UserSession")
-                hadStaleGenericData = true
-            }
-
-            // DEFENSIVE: Clear stale data if email mismatch (in-memory)
-            if let cachedEmail = userEmail, cachedEmail != email {
-                Logger.shared.warning("Email mismatch! Cached: \(cachedEmail), Auth: \(email). Clearing stale data.")
-                fileCredits = 0
-                organizationHistory = []
-            } else if hadStaleGenericData && userEmail != email {
-                // Also clear if we just removed stale generic data
-                Logger.shared.info("Clearing in-memory data from stale generic key")
-                fileCredits = 0
-                organizationHistory = []
             }
 
             userEmail = email
