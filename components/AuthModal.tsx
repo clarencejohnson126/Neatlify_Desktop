@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useDesktopAppDetection } from '../hooks/useDesktopAppDetection';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -15,8 +16,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isDesktopAppLaunching, setIsDesktopAppLaunching] = useState(false);
 
-  const { signIn, signUp, resetPassword } = useAuth();
+  const { signIn, signUp, resetPassword, launchDesktopApp } = useAuth();
+  const { isAppInstalled } = useDesktopAppDetection();
 
   const getReadableError = (errorMessage: string): string => {
     if (!errorMessage) return 'An error occurred. Please try again.';
@@ -102,6 +105,30 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
     setFullName('');
     setError('');
     setMessage('');
+  };
+
+  const handleOpenDesktopApp = async () => {
+    setIsDesktopAppLaunching(true);
+    console.log('Opening Neatlify desktop app...');
+
+    try {
+      const success = launchDesktopApp();
+      if (!success) {
+        setError('Failed to open desktop app. Please try again or download it manually.');
+      } else {
+        console.log('Desktop app launched successfully');
+        // Give user time to switch to desktop app
+        setTimeout(() => {
+          onClose();
+          resetForm();
+        }, 1000);
+      }
+    } catch (err) {
+      console.error('Error launching desktop app:', err);
+      setError('Could not open the desktop app. Make sure it\'s installed.');
+    } finally {
+      setIsDesktopAppLaunching(false);
+    }
   };
 
   const switchMode = (newMode: 'login' | 'signup' | 'forgot') => {
@@ -220,6 +247,30 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
               </>
             )}
           </button>
+
+          {/* Open in Desktop App Button - Show after successful login */}
+          {mode === 'login' && !error && !loading && message === '' && isAppInstalled && (
+            <button
+              type="button"
+              onClick={handleOpenDesktopApp}
+              disabled={isDesktopAppLaunching}
+              className="w-full mt-3 bg-[#6C5CE7] text-white py-3 rounded-full font-bold sketch-border cartoon-shadow-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isDesktopAppLaunching ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Opening Desktop App...
+                </>
+              ) : (
+                <>
+                  💻 Open in Desktop App
+                </>
+              )}
+            </button>
+          )}
         </form>
 
         {/* Mode switchers */}

@@ -24,6 +24,69 @@ class SupabaseService {
         }
     }
 
+    // MARK: - Token Management
+
+    /// Check if token is near expiration and refresh if needed
+    func validateSessionAndRefreshIfNeeded() async {
+        // Decode access token to check expiration
+        if let token = AuthSessionStorage.shared.getAccessToken() {
+            do {
+                let payload = try decodeJWTPayload(token)
+
+                let now = Int(Date().timeIntervalSince1970)
+                let timeUntilExpiry = (payload.exp ?? now) - now
+
+                // Refresh if expiring within 5 minutes
+                if timeUntilExpiry < 300 {
+                    Logger.shared.warning("Token expiring in \(timeUntilExpiry)s, refreshing...")
+                    await refreshAccessToken()
+                }
+            } catch {
+                Logger.shared.error("Failed to validate token: \(error)")
+            }
+        }
+    }
+
+    private func refreshAccessToken() async {
+        guard let refreshToken = AuthSessionStorage.shared.getRefreshToken() else {
+            Logger.shared.error("No refresh token available")
+            return
+        }
+
+        do {
+            let result = try await AuthenticationService.shared.refreshToken(refreshToken)
+
+            if let newAccessToken = result.accessToken {
+                AuthSessionStorage.shared.saveAccessToken(newAccessToken)
+                Logger.shared.info("✅ Access token refreshed")
+            }
+        } catch {
+            Logger.shared.error("Failed to refresh token: \(error)")
+        }
+    }
+
+    private func decodeJWTPayload(_ token: String) throws -> (exp: Int?, iat: Int?) {
+        let parts = token.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 3 else { throw SupabaseError.invalidResponse }
+
+        let payloadPart = String(parts[1])
+        let padding = 4 - (payloadPart.count % 4)
+        let paddedPayload = payloadPart + String(repeating: "=", count: padding)
+
+        guard let payloadData = Data(base64Encoded: paddedPayload) else {
+            throw SupabaseError.invalidResponse
+        }
+
+        struct Payload: Decodable {
+            let exp: Int?
+            let iat: Int?
+        }
+
+        let decoder = JSONDecoder()
+        let payload = try decoder.decode(Payload.self, from: payloadData)
+        return (exp: payload.exp, iat: payload.iat)
+    }
+
     // MARK: - Credit Checking
 
     /// Check if user has enough credits (server-side validation)

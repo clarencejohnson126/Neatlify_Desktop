@@ -97,6 +97,40 @@ class AuthSessionStorage {
         return getAccessToken() != nil && getUserEmail() != nil
     }
 
+    // MARK: - Account Switching
+
+    /// Switch to a different user account
+    /// Clears old session and saves new one
+    func switchAccount(
+        accessToken: String,
+        refreshToken: String,
+        userEmail: String
+    ) {
+        let oldEmail = getUserEmail()
+
+        // Log the switch
+        if let oldEmail = oldEmail, oldEmail != userEmail {
+            Logger.shared.warning("🔄 Switching accounts: \(oldEmail) → \(userEmail)")
+        }
+
+        // Clear old session completely
+        clearSession()
+
+        // Save new session
+        saveAccessToken(accessToken)
+        saveRefreshToken(refreshToken)
+        saveUserEmail(userEmail)
+
+        Logger.shared.info("✅ Switched to account: \(userEmail)")
+
+        // Notify app of account switch
+        NotificationCenter.default.post(
+            name: NSNotification.Name("AccountDidSwitch"),
+            object: nil,
+            userInfo: ["email": userEmail, "previousEmail": oldEmail]
+        )
+    }
+
     // MARK: - Keychain Operations
 
     private func saveToKeychain(_ value: String, forKey key: String) {

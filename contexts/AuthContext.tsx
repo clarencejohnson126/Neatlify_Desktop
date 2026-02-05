@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, Profile } from '../lib/supabase';
+import { launchDesktopAppWithAuth } from '../lib/authTokenHandler';
 
 interface AuthContextType {
   user: User | null;
@@ -11,6 +12,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
+  launchDesktopApp: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -102,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         password,
         options: {
+          emailRedirectTo: 'https://www.neatlify.app/#/',
           data: {
             full_name: fullName || '',
           },
@@ -128,6 +131,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error: error as Error | null };
   };
 
+  const launchDesktopApp = () => {
+    console.log('Attempting to launch desktop app with current session...');
+    return launchDesktopAppWithAuth(session, user);
+  };
+
   const value = {
     user,
     profile,
@@ -137,6 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     resetPassword,
+    launchDesktopApp,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -524,9 +524,6 @@ const LandingPage: React.FC = () => {
         <div className="max-w-6xl mx-auto">
           <AnimatedSection className="text-center mb-16">
             <h2 className="text-5xl md:text-6xl font-black mb-6 drop-shadow-lg">{t.pricing.title}</h2>
-            <div className="inline-block bg-[#FFD93D] text-[#2D3436] px-8 py-3 rounded-full text-lg font-black sketch-border cartoon-shadow wiggle">
-              {t.pricing.free}
-            </div>
           </AnimatedSection>
 
           <div className="grid md:grid-cols-4 gap-6">

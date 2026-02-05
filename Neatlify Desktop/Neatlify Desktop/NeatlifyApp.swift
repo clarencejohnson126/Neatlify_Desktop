@@ -85,6 +85,23 @@ struct NeatlifyApp: App {
                     userSession.fileCredits = savedSession.fileCredits
                     Logger.shared.info("Credits refreshed in UI: \(userSession.fileCredits)")
                 }
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AccountDidSwitch"))) { notification in
+                    // Account was switched (via deep link auth or login)
+                    if let userInfo = notification.userInfo,
+                       let newEmail = userInfo["email"] as? String {
+                        Logger.shared.info("🔄 Account switched to: \(newEmail)")
+                        // Reload session and sync credits
+                        DispatchQueue.main.async {
+                            let newSession = UserSession.load()
+                            userSession.userEmail = newSession.userEmail
+                            userSession.fileCredits = newSession.fileCredits
+                            userSession.isAuthenticatedWithSupabase = newSession.isAuthenticatedWithSupabase
+                            Task {
+                                await userSession.syncCreditsFromServer()
+                            }
+                        }
+                    }
+                }
                 .alert("Payment Successful!", isPresented: $showPaymentSuccess) {
                     Button("Start Organizing", role: .cancel) {}
                 } message: {
@@ -108,14 +125,21 @@ struct NeatlifyApp: App {
     }
 
     private func handleIncomingURL(_ url: URL) {
-        // Handle Stripe checkout redirects:
-        // Success: neatlify://checkout/success?session_id=cs_xxx
-        // Cancel: neatlify://checkout/cancel
+        // Handle deep links:
+        // Auth callback: neatlify://auth-callback?access_token=...&refresh_token=...&user_email=...&exp=...&iat=...
+        // Checkout success: neatlify://checkout/success?session_id=cs_xxx
+        // Checkout cancel: neatlify://checkout/cancel
         Logger.shared.info("Received URL: \(url.absoluteString)")
 
         guard url.scheme == "neatlify" else { return }
 
         let path = url.path
+
+        // Handle auth callback (landing page → desktop app authentication)
+        if path.contains("auth-callback") {
+            handleAuthCallback(url)
+            return
+        }
 
         // Handle checkout paths
         if path.contains("checkout/success") {
@@ -189,5 +213,74 @@ struct NeatlifyApp: App {
         paymentErrorMessage = message
         showPaymentError = true
         Logger.shared.error("Payment error: \(message)")
+    }
+
+    private func handleAuthCallback(_ url: URL) {
+        Logger.shared.info("🔐 Received auth-callback from landing page")
+
+        // Parse query parameters
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let queryItems = components.queryItems else {
+            Logger.shared.error("Invalid auth-callback URL format")
+            showError("Authentication failed: Invalid URL format")
+            return
+        }
+
+        // Extract parameters
+        let params = Dictionary(uniqueKeysWithValues: queryItems.map { ($0.name, $0.value) })
+        let accessToken = params["access_token"]
+        let refreshToken = params["refresh_token"]
+        let userEmail = params["user_email"]
+        let exp = params["exp"]
+        let iat = params["iat"]
+
+        Logger.shared.info("Auth params received - email: \(userEmail ?? "unknown")")
+
+        // Validate all parameters
+        let validationResult = AuthTokenValidator.validateDeepLinkParams(
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            userEmail: userEmail,
+            exp: exp,
+            iat: iat
+        )
+
+        switch validationResult {
+        case .success(let params):
+            Logger.shared.info("✅ Auth tokens validated successfully")
+            authenticateFromDeepLink(params)
+
+        case .failure(let error):
+            Logger.shared.error("❌ Auth token validation failed: \(error)")
+            showError("Authentication failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func authenticateFromDeepLink(_ params: AuthTokenValidator.DeepLinkParams) {
+        Logger.shared.info("🔄 Authenticating from deep link for: \(params.userEmail)")
+
+        // Check if switching users
+        let currentEmail = AuthSessionStorage.shared.getUserEmail()
+        if let currentEmail = currentEmail, currentEmail != params.userEmail {
+            Logger.shared.warning("🔄 User switch detected: \(currentEmail) → \(params.userEmail)")
+            // The UserSession.checkAuthStatus() will handle the cleanup
+        }
+
+        // Save session to AuthSessionStorage
+        AuthSessionStorage.shared.saveAccessToken(params.accessToken)
+        AuthSessionStorage.shared.saveRefreshToken(params.refreshToken)
+        AuthSessionStorage.shared.saveUserEmail(params.userEmail)
+
+        Logger.shared.info("💾 Session saved to Keychain for: \(params.userEmail)")
+
+        // Update UserSession
+        userSession.checkAuthStatus()
+
+        // Sync credits from server
+        Task {
+            await userSession.syncCreditsFromServer()
+        }
+
+        Logger.shared.info("✅ Desktop app authenticated from web login")
     }
 }

@@ -243,6 +243,34 @@ class UserSession: ObservableObject, Codable {
         }
     }
 
+    /// Authenticate from landing page deep link
+    /// Called when user logs in on web and clicks "Open in Desktop App"
+    func authenticateFromDeepLink(
+        accessToken: String,
+        refreshToken: String,
+        userEmail: String,
+        expiresAt: Int
+    ) {
+        Logger.shared.info("🔐 Authenticating from deep link: \(userEmail)")
+
+        // Check if switching users
+        if let currentEmail = userEmail, currentEmail != userEmail {
+            Logger.shared.warning("Account switch via deep link: \(currentEmail) → \(userEmail)")
+        }
+
+        // Use switchAccount to handle clearing old session
+        AuthSessionStorage.shared.switchAccount(
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            userEmail: userEmail
+        )
+
+        // Update local session
+        checkAuthStatus()
+
+        Logger.shared.info("✅ Authenticated from web login")
+    }
+
     /// Unlink account (both manual linking and Supabase Auth)
     func unlinkAccount() {
         let emailForCleanup = userEmail
