@@ -85,7 +85,22 @@ class AuthenticationService {
         }
 
         if httpResponse.statusCode == 200 {
-            let authResponse = try JSONDecoder().decode(AuthResponse.self, from: data)
+            var authResponse = try JSONDecoder().decode(AuthResponse.self, from: data)
+
+            // Supabase returns tokens at top level, not in a nested session object
+            // Create a Session from the top-level fields if needed
+            if authResponse.session == nil && authResponse.accessToken != nil {
+                print("🔧 Creating Session from top-level token fields...")
+                authResponse.session = AuthenticationService.Session(
+                    accessToken: authResponse.accessToken ?? "",
+                    refreshToken: authResponse.refreshToken ?? "",
+                    expiresIn: authResponse.expiresIn ?? 3600,
+                    expiresAt: authResponse.expiresAt,
+                    tokenType: authResponse.tokenType ?? "bearer"
+                )
+                print("✅ Session created successfully")
+            }
+
             return authResponse
         } else {
             // Log raw response for debugging
@@ -141,11 +156,21 @@ class AuthenticationService {
 
     struct AuthResponse: Codable {
         let user: User?
-        let session: Session?
+        var session: Session?
+        let accessToken: String?
+        let refreshToken: String?
+        let expiresIn: Int?
+        let expiresAt: Int?
+        let tokenType: String?
 
         enum CodingKeys: String, CodingKey {
             case user
             case session
+            case accessToken = "access_token"
+            case refreshToken = "refresh_token"
+            case expiresIn = "expires_in"
+            case expiresAt = "expires_at"
+            case tokenType = "token_type"
         }
     }
 

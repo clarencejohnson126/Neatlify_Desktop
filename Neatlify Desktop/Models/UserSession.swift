@@ -161,6 +161,7 @@ class UserSession: ObservableObject, Codable {
            let _ = AuthSessionStorage.shared.getAccessToken() {
             userEmail = email
             isAuthenticatedWithSupabase = true
+            save()  // ✅ IMPORTANT: Save to UserDefaults so other views can see it
             Logger.shared.info("User authenticated: \(email)")
 
             // Auto-sync credits from server

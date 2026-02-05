@@ -113,8 +113,8 @@ class PaymentService {
         let body: [String: Any] = [
             "productType": productType,
             "userEmail": userEmail,
-            "successUrl": "https://clarencejohnson126.github.io/Neatlify_Desktop/#/success?session_id={CHECKOUT_SESSION_ID}",
-            "cancelUrl": "https://clarencejohnson126.github.io/Neatlify_Desktop/#pricing"
+            "successUrl": "neatlify://checkout/success?session_id={CHECKOUT_SESSION_ID}",
+            "cancelUrl": "neatlify://checkout/cancel"
         ]
 
         do {

@@ -94,23 +94,36 @@ struct NeatlifyApp: App {
     }
 
     private func handleIncomingURL(_ url: URL) {
-        // Expected URL: neatlify://activate?session_id=cs_xxx
+        // Handle Stripe checkout redirects:
+        // Success: neatlify://checkout/success?session_id=cs_xxx
+        // Cancel: neatlify://checkout/cancel
         Logger.shared.info("Received URL: \(url.absoluteString)")
 
         guard url.scheme == "neatlify" else { return }
 
-        // Parse query parameters
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              let queryItems = components.queryItems else {
-            showError("Invalid payment URL")
-            return
-        }
+        let path = url.path
 
-        // Look for session_id parameter
-        if let sessionId = queryItems.first(where: { $0.name == "session_id" })?.value {
-            verifyPayment(sessionId: sessionId)
-        } else {
-            showError("Missing session ID in payment URL")
+        // Handle checkout paths
+        if path.contains("checkout/success") {
+            // Parse query parameters
+            guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+                  let queryItems = components.queryItems else {
+                showError("Invalid payment URL")
+                return
+            }
+
+            // Look for session_id parameter
+            if let sessionId = queryItems.first(where: { $0.name == "session_id" })?.value {
+                verifyPayment(sessionId: sessionId)
+            } else {
+                showError("Missing session ID in payment URL")
+            }
+        } else if path.contains("checkout/cancel") {
+            // User cancelled payment - just sync to see if they have credits
+            Logger.shared.info("Payment cancelled, syncing credits...")
+            Task {
+                await userSession.syncCreditsFromServer()
+            }
         }
     }
 
