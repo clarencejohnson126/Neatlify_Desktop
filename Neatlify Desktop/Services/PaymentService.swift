@@ -158,7 +158,7 @@ class PaymentService {
 
     @MainActor
     func contactEnterprise() {
-        if let url = URL(string: "mailto:support@neatlify.com?subject=Enterprise%20Inquiry") {
+        if let url = URL(string: "mailto:hello@neatlify.app?subject=Enterprise%20Inquiry") {
             NSWorkspace.shared.open(url)
         }
     }
