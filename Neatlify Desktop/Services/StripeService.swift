@@ -38,20 +38,24 @@ class StripeService {
             return .alreadyUsed
         }
 
-        // Fetch session from Stripe
-        guard let url = URL(string: "\(baseURL)/checkout/sessions/\(sessionId)") else {
+        // Call Supabase edge function to verify payment (no Stripe secret key needed)
+        guard let url = URL(string: "https://nlvlwrhayrvberdyjgjx.supabase.co/functions/v1/verify-payment") else {
             throw StripeError.invalidURL
         }
 
         var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        // Basic auth with secret key
-        let authString = "\(secretKey):"
-        if let authData = authString.data(using: .utf8) {
-            let base64Auth = authData.base64EncodedString()
-            request.setValue("Basic \(base64Auth)", forHTTPHeaderField: "Authorization")
-        }
+        // Get user email from keychain for verification
+        let userEmail = AuthSessionStorage.shared.getUserEmail() ?? ""
+
+        let body: [String: Any] = [
+            "session_id": sessionId,
+            "user_email": userEmail
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -60,31 +64,34 @@ class StripeService {
         }
 
         if httpResponse.statusCode != 200 {
-            Logger.shared.error("Stripe API error: \(httpResponse.statusCode)")
+            Logger.shared.error("Supabase verify-payment error: \(httpResponse.statusCode)")
             if let errorBody = String(data: data, encoding: .utf8) {
                 Logger.shared.error("Error: \(errorBody)")
             }
+
+            // Try to parse error response
+            if let errorJson = try? JSONDecoder().decode(ErrorResponse.self, from: data),
+               errorJson.already_processed == true {
+                return .alreadyUsed
+            }
+
             throw StripeError.apiError(statusCode: httpResponse.statusCode)
         }
 
-        // Parse response
-        let session = try JSONDecoder().decode(CheckoutSession.self, from: data)
+        // Parse success response
+        let result = try JSONDecoder().decode(VerifyPaymentResponse.self, from: data)
 
-        // Verify payment status
-        guard session.paymentStatus == "paid" else {
-            return .notPaid
+        if result.success {
+            let credits = result.credits_added ?? 0
+            if credits > 0 {
+                // Mark session as used
+                markSessionUsed(sessionId)
+                return .success(credits: credits)
+            }
+            return .unknownProduct
         }
 
-        // Determine credits based on amount
-        let credits = creditsForAmount(session.amountTotal, currency: session.currency)
-
-        if credits > 0 {
-            // Mark session as used
-            markSessionUsed(sessionId)
-            return .success(credits: credits)
-        }
-
-        return .unknownProduct
+        return .notPaid
     }
 
     // MARK: - Credits Mapping
@@ -156,5 +163,18 @@ class StripeService {
             case amountTotal = "amount_total"
             case currency
         }
+    }
+
+    struct VerifyPaymentResponse: Codable {
+        let success: Bool
+        let credits_added: Int?
+        let user_id: String?
+        let product_type: String?
+        let already_processed: Bool?
+    }
+
+    struct ErrorResponse: Codable {
+        let error: String?
+        let already_processed: Bool?
     }
 }
