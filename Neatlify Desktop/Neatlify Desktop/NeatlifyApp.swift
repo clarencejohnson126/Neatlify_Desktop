@@ -34,6 +34,9 @@ struct NeatlifyApp: App {
                     // Initialize StoreKit transaction listener for App Store version
                     _ = StoreKitManager.shared
 
+                    // CRITICAL: Clean up any stale cached data from previous users
+                    UserSession.cleanupStaleCache()
+
                     // CRITICAL: Check auth FIRST before using cached data
                     userSession.checkAuthStatus()
 

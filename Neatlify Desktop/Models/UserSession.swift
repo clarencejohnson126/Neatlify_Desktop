@@ -103,6 +103,35 @@ class UserSession: ObservableObject, Codable {
 
     init() {}
 
+    // MARK: - Cache Cleanup
+
+    /// CRITICAL: Clean up all stale UserDefaults that don't match current user
+    /// Must be called early in app lifecycle, even before checking auth status
+    static func cleanupStaleCache() {
+        // If a user is authenticated, verify cached data matches them
+        if let currentEmail = AuthSessionStorage.shared.getUserEmail() {
+            let currentKey = "UserSession_\(currentEmail.replacingOccurrences(of: "@", with: "_at_"))"
+
+            // Check generic key - if it's for a different user, delete it
+            if let genericData = UserDefaults.standard.data(forKey: "UserSession"),
+               let genericSession = try? JSONDecoder().decode(UserSession.self, from: genericData),
+               let genericEmail = genericSession.userEmail,
+               genericEmail != currentEmail {
+                Logger.shared.warning("CLEANUP: Removing generic key with stale user data (\(genericEmail)). Current user: \(currentEmail)")
+                UserDefaults.standard.removeObject(forKey: "UserSession")
+            }
+
+            // Also check if we have a user-specific key and generic key with DIFFERENT users
+            if let currentData = UserDefaults.standard.data(forKey: currentKey),
+               let currentSession = try? JSONDecoder().decode(UserSession.self, from: currentData) {
+                Logger.shared.info("CLEANUP: Found user-specific key for \(currentEmail)")
+
+                // Delete generic key since we have the right user-specific key
+                UserDefaults.standard.removeObject(forKey: "UserSession")
+            }
+        }
+    }
+
     // MARK: - User-Specific Cache Key
 
     private var userDefaultsKey: String {
@@ -482,6 +511,9 @@ class UserSession: ObservableObject, Codable {
     }
 
     static func load() -> UserSession {
+        // CRITICAL: Clean up stale cached data before loading
+        cleanupStaleCache()
+
         // Try user-specific key first
         if let email = AuthSessionStorage.shared.getUserEmail() {
             let key = "UserSession_\(email.replacingOccurrences(of: "@", with: "_at_"))"
