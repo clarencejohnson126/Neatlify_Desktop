@@ -48,8 +48,15 @@ class AuthenticationService {
             let authResponse = try JSONDecoder().decode(AuthResponse.self, from: data)
             return authResponse
         } else {
+            // Log raw response for debugging
+            if let responseStr = String(data: data, encoding: .utf8) {
+                print("❌ Supabase Error Response: \(responseStr)")
+            }
+
             let error = try? JSONDecoder().decode(AuthErrorResponse.self, from: data)
-            throw AuthError.signUpFailed(error?.message ?? "Sign up failed")
+            let errorMessage = error?.message ?? error?.errorDescription ?? "Sign up failed"
+            print("❌ Auth Error Status: \(httpResponse.statusCode), Message: \(errorMessage)")
+            throw AuthError.signUpFailed(errorMessage)
         }
     }
 
@@ -81,8 +88,15 @@ class AuthenticationService {
             let authResponse = try JSONDecoder().decode(AuthResponse.self, from: data)
             return authResponse
         } else {
+            // Log raw response for debugging
+            if let responseStr = String(data: data, encoding: .utf8) {
+                print("❌ Supabase Error Response: \(responseStr)")
+            }
+
             let error = try? JSONDecoder().decode(AuthErrorResponse.self, from: data)
-            throw AuthError.signInFailed(error?.message ?? "Sign in failed")
+            let errorMessage = error?.message ?? error?.errorDescription ?? "Sign in failed"
+            print("❌ Auth Error Status: \(httpResponse.statusCode), Message: \(errorMessage)")
+            throw AuthError.signInFailed(errorMessage)
         }
     }
 

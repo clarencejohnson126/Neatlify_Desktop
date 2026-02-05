@@ -161,36 +161,51 @@ struct AuthenticationView: View {
         isLoading = true
         errorMessage = ""
 
+        let trimmedEmail = email.lowercased().trimmingCharacters(in: .whitespaces)
+        print("🔐 Auth attempt: \(isSignUp ? "SignUp" : "SignIn") - Email: \(trimmedEmail)")
+
         Task {
             do {
                 if isSignUp {
+                    print("📝 Attempting signup...")
                     _ = try await AuthenticationService.shared.signUp(
-                        email: email.lowercased().trimmingCharacters(in: .whitespaces),
+                        email: trimmedEmail,
                         password: password,
                         fullName: fullName
                     )
+                    print("✅ Signup successful")
                 } else {
+                    print("🔓 Attempting signin...")
                     let response = try await AuthenticationService.shared.signIn(
-                        email: email.lowercased().trimmingCharacters(in: .whitespaces),
+                        email: trimmedEmail,
                         password: password
                     )
+                    print("✅ Signin API response received")
 
                     // Save session and user info
                     if let session = response.session, let user = response.user {
+                        print("💾 Saving session - User: \(user.email)")
                         AuthSessionStorage.shared.saveSession(session, userId: user.id, email: user.email)
                         Logger.shared.info("Auth successful for user: \(user.email)")
+                        print("✅ Session saved successfully")
+                    } else {
+                        print("❌ No session or user in response: session=\(response.session != nil), user=\(response.user != nil)")
                     }
                 }
 
                 await MainActor.run {
+                    print("🔄 Updating UI and checking auth status...")
                     isLoading = false
                     // UserSession will listen for auth changes
                     userSession.checkAuthStatus()
+                    print("✅ Auth check complete")
                 }
             } catch {
                 await MainActor.run {
                     isLoading = false
                     let errorDesc = error.localizedDescription
+                    print("❌ Authentication ERROR: \(errorDesc)")
+                    print("❌ Full error: \(error)")
 
                     // Provide user-friendly error messages
                     let friendlyError: String
@@ -202,14 +217,16 @@ struct AuthenticationView: View {
                         friendlyError = "❌ Invalid email address.\n\nPlease check the spelling."
                     } else if errorDesc.contains("Network") {
                         friendlyError = "🌐 Network error.\n\nPlease check your connection."
+                    } else if errorDesc.contains("405") {
+                        friendlyError = "⚠️ Invalid request format.\n\nPlease check your input."
                     } else {
-                        friendlyError = "❌ Authentication failed.\n\n\(errorDesc)"
+                        friendlyError = "❌ Auth failed: \(errorDesc)"
                     }
 
+                    print("📢 Showing error to user: \(friendlyError)")
                     errorMessage = friendlyError
                     showError = true
                     Logger.shared.error("Auth failed: \(errorDesc)")
-                    print("DEBUG Auth Error: \(errorDesc)")
                 }
             }
         }
