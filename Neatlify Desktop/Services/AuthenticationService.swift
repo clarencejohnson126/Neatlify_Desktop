@@ -314,56 +314,80 @@ extension AuthenticationService {
         let sub: String?
     }
 
+    enum ValidationError: LocalizedError {
+        case missingAccessToken
+        case missingRefreshToken
+        case missingUserEmail
+        case invalidExpiration
+        case invalidTimestamp
+        case invalidTokenFormat
+        case tokenExpired
+        case invalidEmailFormat
+
+        var errorDescription: String? {
+            switch self {
+            case .missingAccessToken: return "Missing access token"
+            case .missingRefreshToken: return "Missing refresh token"
+            case .missingUserEmail: return "Missing user email"
+            case .invalidExpiration: return "Invalid expiration"
+            case .invalidTimestamp: return "Invalid timestamp"
+            case .invalidTokenFormat: return "Invalid token format"
+            case .tokenExpired: return "Token expired"
+            case .invalidEmailFormat: return "Invalid email format"
+            }
+        }
+    }
+
     static func validateDeepLinkParams(
         accessToken: String?,
         refreshToken: String?,
         userEmail: String?,
         exp: String?,
         iat: String?
-    ) -> Result<DeepLinkParams, String> {
+    ) -> Result<DeepLinkParams, ValidationError> {
         // Check all required parameters present
         guard let accessToken = accessToken, !accessToken.isEmpty else {
             Logger.shared.error("Missing access token")
-            return .failure("Missing access token")
+            return .failure(.missingAccessToken)
         }
 
         guard let refreshToken = refreshToken, !refreshToken.isEmpty else {
             Logger.shared.error("Missing refresh token")
-            return .failure("Missing refresh token")
+            return .failure(.missingRefreshToken)
         }
 
         guard let userEmail = userEmail, !userEmail.isEmpty else {
             Logger.shared.error("Missing user email")
-            return .failure("Missing user email")
+            return .failure(.missingUserEmail)
         }
 
         guard let expStr = exp, let expiresAt = Int(expStr) else {
             Logger.shared.error("Invalid or missing expiration")
-            return .failure("Invalid expiration")
+            return .failure(.invalidExpiration)
         }
 
         guard let iatStr = iat, let issuedAt = Int(iatStr) else {
             Logger.shared.error("Invalid or missing issued-at timestamp")
-            return .failure("Invalid timestamp")
+            return .failure(.invalidTimestamp)
         }
 
         // Validate access token JWT
         if !validateJWTFormat(accessToken) {
             Logger.shared.error("Invalid access token format")
-            return .failure("Invalid token format")
+            return .failure(.invalidTokenFormat)
         }
 
         // Validate token not expired
         let now = Int(Date().timeIntervalSince1970)
         if expiresAt <= now {
             Logger.shared.warning("Token expired at \(expiresAt), now is \(now)")
-            return .failure("Token expired")
+            return .failure(.tokenExpired)
         }
 
         // Validate email format
         guard validateEmailFormat(userEmail) else {
             Logger.shared.error("Invalid email format: \(userEmail)")
-            return .failure("Invalid email format")
+            return .failure(.invalidEmailFormat)
         }
 
         Logger.shared.info("✅ Deep link parameters validated successfully for: \(userEmail)")
