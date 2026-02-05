@@ -226,13 +226,29 @@ struct NeatlifyApp: App {
             return
         }
 
-        // Extract parameters
-        let params = Dictionary(uniqueKeysWithValues: queryItems.map { ($0.name, $0.value) })
-        let accessToken = params["access_token"]
-        let refreshToken = params["refresh_token"]
-        let userEmail = params["user_email"]
-        let exp = params["exp"]
-        let iat = params["iat"]
+        // Extract parameters (queryItems values are already optional)
+        var accessToken: String?
+        var refreshToken: String?
+        var userEmail: String?
+        var exp: String?
+        var iat: String?
+
+        for item in queryItems {
+            switch item.name {
+            case "access_token":
+                accessToken = item.value
+            case "refresh_token":
+                refreshToken = item.value
+            case "user_email":
+                userEmail = item.value
+            case "exp":
+                exp = item.value
+            case "iat":
+                iat = item.value
+            default:
+                break
+            }
+        }
 
         Logger.shared.info("Auth params received - email: \(userEmail ?? "unknown")")
 
