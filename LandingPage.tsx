@@ -647,6 +647,7 @@ const LandingPage: React.FC = () => {
             <div className="flex flex-wrap justify-center gap-8 text-sm font-bold">
               <a href="#/privacy" className="hover:text-[#FF6B6B] transition-all">{t.footer.privacy}</a>
               <a href="#/impressum" className="hover:text-[#FF6B6B] transition-all">{lang === 'EN' ? 'Impressum' : 'Impressum'}</a>
+              <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener noreferrer" className="hover:text-[#FF6B6B] transition-all">{lang === 'EN' ? 'Terms of Service' : 'Nutzungsbedingungen'}</a>
               <a href="mailto:hello@neatlify.app" className="hover:text-[#FF6B6B] transition-all">{t.footer.support}</a>
             </div>
             <div className="flex items-center gap-3">
