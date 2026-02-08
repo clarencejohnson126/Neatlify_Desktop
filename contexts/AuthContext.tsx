@@ -48,7 +48,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let isMounted = true;
-    let latestProfileRequest = 0;
 
     const updateAuthState = (nextSession: Session | null) => {
       if (!isMounted) return;
@@ -60,14 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!nextUser) {
         setProfile(null);
-        return;
       }
-
-      const requestId = ++latestProfileRequest;
-      fetchProfile(nextUser.id).then((nextProfile) => {
-        if (!isMounted || requestId !== latestProfileRequest) return;
-        setProfile(nextProfile);
-      });
     };
 
     supabase.auth.getSession()
@@ -91,6 +83,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!user) {
+      setProfile(null);
+      return;
+    }
+
+    fetchProfile(user.id).then((nextProfile) => {
+      if (!cancelled) {
+        setProfile(nextProfile);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const signIn = async (email: string, password: string) => {
     try {
