@@ -101,9 +101,13 @@ const UserMenu: React.FC<UserMenuProps> = ({ onBuyCredits }) => {
               My Account
             </a>
             <button
-              onClick={() => {
-                signOut();
+              onClick={async () => {
                 setIsOpen(false);
+                try {
+                  await signOut();
+                } catch (error) {
+                  console.error('Sign out failed:', error);
+                }
               }}
               className="w-full text-left px-3 py-2 font-bold text-[#FF6B6B] hover:bg-[#FF6B6B] hover:text-white transition-all rounded"
             >

@@ -47,39 +47,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Get initial session
+    let isMounted = true;
+    let latestProfileRequest = 0;
+
+    const updateAuthState = (nextSession: Session | null) => {
+      if (!isMounted) return;
+
+      setSession(nextSession);
+      const nextUser = nextSession?.user ?? null;
+      setUser(nextUser);
+      setLoading(false);
+
+      if (!nextUser) {
+        setProfile(null);
+        return;
+      }
+
+      const requestId = ++latestProfileRequest;
+      fetchProfile(nextUser.id).then((nextProfile) => {
+        if (!isMounted || requestId !== latestProfileRequest) return;
+        setProfile(nextProfile);
+      });
+    };
+
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          fetchProfile(session.user.id).then(setProfile);
-        }
-        setLoading(false);
+        updateAuthState(session);
       })
       .catch((error) => {
         console.error('Error getting session:', error);
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+    // Keep callback synchronous; avoid await/Supabase calls directly inside onAuthStateChange.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      updateAuthState(nextSession);
+    });
 
-        if (session?.user) {
-          const profile = await fetchProfile(session.user.id);
-          setProfile(profile);
-        } else {
-          setProfile(null);
-        }
-
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -119,9 +129,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    // Let onAuthStateChange listener handle state updates
-    // to avoid race conditions and stale UI
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      throw error;
+    }
+
+    // Keep UI in sync even if the auth-state event is delayed/missed.
+    setSession(null);
+    setUser(null);
+    setProfile(null);
+    setLoading(false);
   };
 
   const resetPassword = async (email: string) => {
