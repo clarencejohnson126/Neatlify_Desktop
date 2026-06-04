@@ -54,7 +54,7 @@ class AuthenticationService {
             }
 
             let error = try? JSONDecoder().decode(AuthErrorResponse.self, from: data)
-            let errorMessage = error?.message ?? error?.errorDescription ?? "Sign up failed"
+            let errorMessage = error?.message ?? error?.errorDescription ?? error?.error ?? "Sign up failed"
             print("❌ Auth Error Status: \(httpResponse.statusCode), Message: \(errorMessage)")
             throw AuthError.signUpFailed(errorMessage)
         }
@@ -119,7 +119,7 @@ class AuthenticationService {
             }
 
             let error = try? JSONDecoder().decode(AuthErrorResponse.self, from: data)
-            let errorMessage = error?.message ?? error?.errorDescription ?? "Sign in failed"
+            let errorMessage = error?.message ?? error?.errorDescription ?? error?.error ?? "Sign in failed"
             print("❌ Auth Error Status: \(httpResponse.statusCode), Message: \(errorMessage)")
             throw AuthError.signInFailed(errorMessage)
         }
@@ -162,7 +162,94 @@ class AuthenticationService {
         AuthSessionStorage.shared.clearSession()
     }
 
+    /// Delete user account via Supabase edge function
+    /// Requires a valid access token. Deletes profile data and auth user server-side.
+    ///
+    /// The delete-account function is deployed with `verify_jwt = true`, so the Supabase
+    /// gateway rejects an expired access token with 401 *before* our function runs. Access
+    /// tokens expire after 1 hour (jwt_expiry = 3600), so we proactively refresh the session
+    /// and, if the gateway still returns 401, force a refresh and retry once. This is the
+    /// difference between a reviewer's deletion succeeding and silently failing.
+    func deleteAccount() async throws {
+        // Refresh if the access token is near or past expiry.
+        await SupabaseService.shared.validateSessionAndRefreshIfNeeded()
+
+        do {
+            try await performDeleteAccount()
+        } catch AuthError.deleteAccountUnauthorized {
+            Logger.shared.warning("delete-account returned 401 — forcing token refresh and retrying once")
+            try await forceRefreshSession()
+            try await performDeleteAccount()
+        }
+    }
+
+    /// Force a token refresh using the stored refresh token. Throws if no valid refresh path exists.
+    private func forceRefreshSession() async throws {
+        guard let refreshToken = AuthSessionStorage.shared.getRefreshToken() else {
+            throw AuthError.deleteAccountFailed("Your session has expired. Please sign out, sign in again, then delete your account.")
+        }
+
+        let result = try await self.refreshToken(refreshToken)
+
+        guard let newAccessToken = result.accessToken ?? result.session?.accessToken else {
+            throw AuthError.deleteAccountFailed("Your session has expired. Please sign out, sign in again, then delete your account.")
+        }
+
+        AuthSessionStorage.shared.saveAccessToken(newAccessToken)
+        if let newRefresh = result.refreshToken ?? result.session?.refreshToken {
+            AuthSessionStorage.shared.saveRefreshToken(newRefresh)
+        }
+        Logger.shared.info("✅ Session force-refreshed before account deletion")
+    }
+
+    /// Single attempt to call the delete-account edge function with the current access token.
+    private func performDeleteAccount() async throws {
+        guard let accessToken = AuthSessionStorage.shared.getAccessToken() else {
+            throw AuthError.deleteAccountFailed("No active session. Please sign in and try again.")
+        }
+
+        guard let url = URL(string: "\(baseURL)/functions/v1/delete-account") else {
+            throw AuthError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 30
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(anonKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = "{}".data(using: .utf8)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AuthError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 200 {
+            Logger.shared.info("Account deleted successfully on server")
+            return
+        }
+
+        if let responseStr = String(data: data, encoding: .utf8) {
+            print("❌ Delete account error (\(httpResponse.statusCode)): \(responseStr)")
+        }
+
+        // 401 means the gateway rejected the JWT (expired/invalid) — signal a retry.
+        if httpResponse.statusCode == 401 {
+            throw AuthError.deleteAccountUnauthorized
+        }
+
+        let errorResponse = try? JSONDecoder().decode(DeleteAccountErrorResponse.self, from: data)
+        let message = errorResponse?.error ?? "Failed to delete account. Please try again."
+        throw AuthError.deleteAccountFailed(message)
+    }
+
     // MARK: - Types
+
+    struct DeleteAccountErrorResponse: Codable {
+        let error: String?
+    }
 
     struct AuthResponse: Codable {
         let user: User?
@@ -230,6 +317,8 @@ class AuthenticationService {
         case signUpFailed(String)
         case signInFailed(String)
         case tokenRefreshFailed
+        case deleteAccountFailed(String)
+        case deleteAccountUnauthorized
 
         var errorDescription: String? {
             switch self {
@@ -238,6 +327,8 @@ class AuthenticationService {
             case .signUpFailed(let msg): return msg
             case .signInFailed(let msg): return msg
             case .tokenRefreshFailed: return "Failed to refresh authentication token"
+            case .deleteAccountFailed(let msg): return msg
+            case .deleteAccountUnauthorized: return "Your session has expired. Please sign out, sign in again, then delete your account."
             }
         }
     }

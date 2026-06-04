@@ -16,6 +16,7 @@ struct AuthenticationView: View {
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var showError = false
+    @State private var showConfirmationMessage = false
 
     var body: some View {
         ZStack {
@@ -44,6 +45,31 @@ struct AuthenticationView: View {
                     Text(isSignUp ? "Create your account" : "Sign in to your account")
                         .font(.subheadline)
                         .foregroundColor(.neatlifyDark.opacity(0.6))
+                }
+
+                // Email confirmation banner
+                if showConfirmationMessage {
+                    HStack(spacing: 12) {
+                        Image(systemName: "envelope.badge.fill")
+                            .foregroundColor(.neatlifyGreen)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Check your email")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.neatlifyDark)
+                            Text("We sent a confirmation link. Please confirm your email, then sign in.")
+                                .font(.caption2)
+                                .foregroundColor(.neatlifyDark.opacity(0.6))
+                        }
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.neatlifyGreen.opacity(0.15))
+                    .cornerRadius(10)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.neatlifyDark, lineWidth: 2)
+                    )
                 }
 
                 // Form fields
@@ -172,12 +198,26 @@ struct AuthenticationView: View {
             do {
                 if isSignUp {
                     print("📝 Attempting signup...")
-                    _ = try await AuthenticationService.shared.signUp(
+                    let signUpResponse = try await AuthenticationService.shared.signUp(
                         email: trimmedEmail,
                         password: password,
                         fullName: fullName
                     )
                     print("✅ Signup successful")
+
+                    // If Supabase returned a session, save it and log in directly
+                    if let session = signUpResponse.session, let user = signUpResponse.user {
+                        AuthSessionStorage.shared.saveSession(session, userId: user.id, email: user.email)
+                        Logger.shared.info("Signup + auto-login for: \(user.email)")
+                    } else {
+                        // Email confirmation required — show message and switch to sign-in mode
+                        await MainActor.run {
+                            isLoading = false
+                            showConfirmationMessage = true
+                            isSignUp = false
+                        }
+                        return
+                    }
                 } else {
                     print("🔓 Attempting signin...")
                     let response = try await AuthenticationService.shared.signIn(
@@ -224,17 +264,21 @@ struct AuthenticationView: View {
                     // Provide user-friendly error messages
                     let friendlyError: String
                     if errorDesc.contains("Invalid login credentials") {
-                        friendlyError = "❌ Incorrect email or password.\n\nPlease check and try again."
-                    } else if errorDesc.contains("429") || errorDesc.contains("rate") {
-                        friendlyError = "⏱️ Too many login attempts.\n\nPlease wait 10 minutes before trying again."
+                        friendlyError = "Incorrect email or password. Please check and try again."
+                    } else if errorDesc.contains("Email not confirmed") {
+                        friendlyError = "Please confirm your email address first. Check your inbox for a confirmation link."
+                    } else if errorDesc.contains("already been registered") || errorDesc.contains("already registered") || errorDesc.contains("User already registered") {
+                        friendlyError = "An account with this email already exists. Try signing in instead."
+                    } else if errorDesc.contains("429") || errorDesc.contains("rate") || errorDesc.contains("security purposes") {
+                        friendlyError = "Too many attempts. Please wait a moment before trying again."
                     } else if errorDesc.contains("invalid email") || errorDesc.contains("invalid_email") {
-                        friendlyError = "❌ Invalid email address.\n\nPlease check the spelling."
-                    } else if errorDesc.contains("Network") {
-                        friendlyError = "🌐 Network error.\n\nPlease check your connection."
-                    } else if errorDesc.contains("405") {
-                        friendlyError = "⚠️ Invalid request format.\n\nPlease check your input."
+                        friendlyError = "Invalid email address. Please check the spelling."
+                    } else if errorDesc.contains("Password should be at least") || errorDesc.contains("password") {
+                        friendlyError = "Password must be at least 6 characters."
+                    } else if errorDesc.contains("Network") || errorDesc.contains("network") {
+                        friendlyError = "Network error. Please check your connection."
                     } else {
-                        friendlyError = "❌ Auth failed: \(errorDesc)"
+                        friendlyError = "Authentication failed. Please try again."
                     }
 
                     print("📢 Showing error to user: \(friendlyError)")

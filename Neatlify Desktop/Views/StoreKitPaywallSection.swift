@@ -51,8 +51,6 @@ struct StoreKitPaywallSection: View {
                 }
             }
 
-            enterpriseButton
-
             Button(action: { restorePurchases() }) {
                 Text("Restore Purchases")
                     .font(.subheadline)
@@ -62,46 +60,6 @@ struct StoreKitPaywallSection: View {
             .buttonStyle(.plain)
             .padding(.top, 8)
         }
-    }
-
-    private var enterpriseButton: some View {
-        Button(action: {
-            PaymentService.shared.contactEnterprise()
-        }) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text("Enterprise")
-                            .font(.headline)
-                            .fontWeight(.black)
-                        Text("Unlimited")
-                            .font(.caption)
-                            .fontWeight(.black)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.purple)
-                            .cornerRadius(4)
-                    }
-                    Text("Custom volume pricing for teams")
-                        .font(.caption)
-                        .foregroundColor(.neatlifyDark.opacity(0.6))
-                }
-                Spacer()
-                Text("Contact Us")
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.purple)
-            }
-            .padding(16)
-            .background(Color.white)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.neatlifyDark, lineWidth: 2)
-            )
-        }
-        .buttonStyle(.plain)
     }
 
     private func restorePurchases() {

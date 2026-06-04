@@ -9,7 +9,59 @@ arguments:
 
 # Neatlify Desktop Release Workflow
 
-Complete workflow for releasing a signed and notarized macOS app.
+Complete workflow for releasing Neatlify Desktop.
+
+> ⚠️ **TWO DISTRIBUTION CHANNELS — DO NOT MIX THEM.**
+> The schemes named `Neatlify Desktop` / config `Release` referenced in the old DMG steps below are **NOT** for the App Store. The submitted App Store binary MUST come from the **`Neatlify Desktop AppStore`** scheme + **`AppStore`** config (which defines `SWIFT_ACTIVE_COMPILATION_CONDITIONS = APPSTORE`). Building the App Store upload from the `Release` config is what caused the build-13 Guideline 3.1.1 rejection.
+>
+> | Channel | Scheme | Config | Signing | Export plist |
+> |---------|--------|--------|---------|--------------|
+> | **A. App Store (IAP)** | `Neatlify Desktop AppStore` | `AppStore` | Apple Distribution (automatic) | `Neatlify Desktop/export-appstore.plist` (method=app-store-connect, destination=upload) |
+> | **B. Direct DMG** | `Neatlify Desktop DMG` | `Release` | Developer ID Application | `export-options.plist` (method=developer-id) |
+
+## Channel A — App Store submission (App Store Connect)
+
+Use this for every App Store review/resubmission. Uploads straight to ASC, no Xcode.app.
+
+### A0. Pre-flight (do these or the submission fails review)
+- [ ] Bump build: `CFBundleVersion` in **both** `Neatlify Desktop/Info.plist` AND all `CURRENT_PROJECT_VERSION` in `project.pbxproj` (the build-version trap — they must match and exceed the last rejected build).
+- [ ] Move any stale `*.xcarchive` out of `build/` so Organizer/CLI can't pick an old one.
+- [ ] Verify the demo account in App Review Information can actually sign in on THIS binary.
+
+### A1. Archive (AppStore scheme + AppStore config)
+```bash
+cd "/Users/clarence/Desktop/Neatlify Desktop/Neatlify Desktop"
+rm -rf /tmp/neatlify-appstore.xcarchive
+xcodebuild archive \
+  -project "Neatlify Desktop.xcodeproj" \
+  -scheme "Neatlify Desktop AppStore" \
+  -configuration AppStore \
+  -archivePath /tmp/neatlify-appstore.xcarchive \
+  -destination 'generic/platform=macOS'
+```
+
+### A2. Verify the archive BEFORE upload
+```bash
+/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" \
+  /tmp/neatlify-appstore.xcarchive/Products/Applications/"Neatlify Desktop.app"/Contents/Info.plist   # must be the new build number
+strings /tmp/neatlify-appstore.xcarchive/Products/Applications/"Neatlify Desktop.app"/Contents/MacOS/"Neatlify Desktop" \
+  | grep -E "delete-account|Delete Account"   # must print both — proves the deletion feature is in the binary
+```
+
+### A3. Export + upload to App Store Connect
+```bash
+xcodebuild -exportArchive \
+  -archivePath /tmp/neatlify-appstore.xcarchive \
+  -exportPath /tmp/neatlify-appstore-export \
+  -exportOptionsPlist "/Users/clarence/Desktop/Neatlify Desktop/Neatlify Desktop/export-appstore.plist"
+```
+`export-appstore.plist` has `destination=upload`, so this validates and uploads the build to App Store Connect. Then in ASC: select build, paste App Review Notes (with working demo credentials), attach the account-deletion screen recording, and submit.
+
+---
+
+## Channel B — Direct DMG distribution (notarized, outside the store)
+
+> The steps below are for the **DMG** channel only. They were originally written with the wrong scheme name; use **`Neatlify Desktop DMG`** / `Release` config here. Never upload a DMG-channel build to the App Store.
 
 ## Apple Developer Credentials
 
@@ -51,12 +103,12 @@ Or in Xcode: Target → General → Version & Build
 cd "/Users/clarence/Desktop/Neatlify Desktop/Neatlify Desktop"
 
 # Clean build folder
-xcodebuild clean -project "Neatlify Desktop.xcodeproj" -scheme "Neatlify Desktop" -configuration Release
+xcodebuild clean -project "Neatlify Desktop.xcodeproj" -scheme "Neatlify Desktop DMG" -configuration Release
 
 # Build archive
 xcodebuild archive \
   -project "Neatlify Desktop.xcodeproj" \
-  -scheme "Neatlify Desktop" \
+  -scheme "Neatlify Desktop DMG" \
   -configuration Release \
   -archivePath "./build/Neatlify Desktop.xcarchive" \
   CODE_SIGN_IDENTITY="Developer ID Application" \
@@ -159,7 +211,7 @@ spctl --assess --verbose=4 --type install "./build/Neatlify-${VERSION}.dmg"
 VERSION="1.2.0" && \
 xcodebuild clean archive \
   -project "Neatlify Desktop.xcodeproj" \
-  -scheme "Neatlify Desktop" \
+  -scheme "Neatlify Desktop DMG" \
   -configuration Release \
   -archivePath "./build/Neatlify.xcarchive" \
   CODE_SIGN_IDENTITY="Developer ID Application" \

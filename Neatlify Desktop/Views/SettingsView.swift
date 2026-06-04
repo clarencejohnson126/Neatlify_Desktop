@@ -156,6 +156,11 @@ struct SubscriptionSettingsView: View {
     @State private var showVerifySheet = false
     @State private var showLinkSheet = false
     @State private var isSyncing = false
+    @State private var showDeleteConfirmation = false
+    @State private var isDeleting = false
+    @State private var showDeleteError = false
+    @State private var deleteErrorMessage = ""
+    @State private var showDeleteSuccess = false
 
     var body: some View {
         ZStack {
@@ -253,7 +258,7 @@ struct SubscriptionSettingsView: View {
                                 Button(action: {
                                     userSession.unlinkAccount()
                                 }) {
-                                    Text("Unlink")
+                                    Text("Sign Out")
                                         .font(.caption)
                                         .fontWeight(.semibold)
                                         .foregroundColor(.neatlifyRed)
@@ -267,6 +272,26 @@ struct SubscriptionSettingsView: View {
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(Color.neatlifyDark, lineWidth: 2)
                             )
+
+                            Button(action: {
+                                showDeleteConfirmation = true
+                            }) {
+                                HStack {
+                                    if isDeleting {
+                                        ProgressView()
+                                            .scaleEffect(0.7)
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .neatlifyRed))
+                                    } else {
+                                        Image(systemName: "trash")
+                                    }
+                                    Text("Delete Account")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                }
+                                .foregroundColor(.neatlifyRed)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isDeleting)
                         } else {
                             VStack(alignment: .leading, spacing: 10) {
                                 HStack {
@@ -362,6 +387,7 @@ struct SubscriptionSettingsView: View {
                         }
                         .buttonStyle(.plain)
 
+                        #if !APPSTORE
                         Button(action: {
                             showVerifySheet = true
                         }) {
@@ -381,16 +407,58 @@ struct SubscriptionSettingsView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        #endif
                     }
                 }
                 .padding(24)
             }
         }
+        #if !APPSTORE
         .sheet(isPresented: $showVerifySheet) {
             VerifyPaymentView(userSession: userSession, isPresented: $showVerifySheet)
         }
+        #endif
         .sheet(isPresented: $showLinkSheet) {
             LinkAccountView(userSession: userSession, isPresented: $showLinkSheet)
+        }
+        .alert("Delete Account?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                deleteAccount()
+            }
+        } message: {
+            Text("This will permanently delete your account and all associated data. Your remaining credits will be lost. This action cannot be undone.")
+        }
+        .alert("Account Deleted", isPresented: $showDeleteSuccess) {
+            Button("OK") {
+                userSession.unlinkAccount()
+            }
+        } message: {
+            Text("Your account and all associated data have been permanently deleted.")
+        }
+        .alert("Deletion Failed", isPresented: $showDeleteError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(deleteErrorMessage)
+        }
+    }
+
+    private func deleteAccount() {
+        isDeleting = true
+        Task {
+            do {
+                try await AuthenticationService.shared.deleteAccount()
+                await MainActor.run {
+                    isDeleting = false
+                    showDeleteSuccess = true
+                }
+            } catch {
+                await MainActor.run {
+                    isDeleting = false
+                    deleteErrorMessage = error.localizedDescription
+                    showDeleteError = true
+                }
+            }
         }
     }
 }
@@ -456,9 +524,15 @@ struct LinkAccountView: View {
                         .font(.system(size: 24, weight: .black))
                         .foregroundColor(.neatlifyDark)
 
+                    #if APPSTORE
+                    Text("Enter your account email")
+                        .font(.subheadline)
+                        .foregroundColor(.neatlifyDark.opacity(0.6))
+                    #else
                     Text("Enter the email you used on neatlify.com")
                         .font(.subheadline)
                         .foregroundColor(.neatlifyDark.opacity(0.6))
+                    #endif
                 }
 
                 // Info card
@@ -588,7 +662,11 @@ struct LinkAccountView: View {
                     isLinking = false
 
                     if error.localizedDescription.contains("not found") {
+                        #if APPSTORE
+                        errorMessage = "No account found with this email. Please create an account in the app first."
+                        #else
                         errorMessage = "No account found with this email. Please sign up at neatlify.com first."
+                        #endif
                     } else {
                         errorMessage = "Could not connect to server. Please check your internet connection."
                     }
@@ -599,6 +677,7 @@ struct LinkAccountView: View {
     }
 }
 
+#if !APPSTORE
 struct VerifyPaymentView: View {
     @ObservedObject var userSession: UserSession
     @Binding var isPresented: Bool
@@ -796,6 +875,7 @@ struct VerifyPaymentView: View {
         }
     }
 }
+#endif
 
 struct AboutSettingsView: View {
     var body: some View {
@@ -847,9 +927,11 @@ struct AboutSettingsView: View {
                     Divider()
                         .background(Color.neatlifyDark.opacity(0.2))
                     AboutLinkRow(icon: "questionmark.circle", title: "Support", url: "https://neatlify.com/support")
+                    #if !APPSTORE
                     Divider()
                         .background(Color.neatlifyDark.opacity(0.2))
                     AboutLinkRow(icon: "globe", title: "Visit Website", url: "https://clarencejohnson126.github.io/Neatlify_Desktop/")
+                    #endif
                 }
                 .background(Color.white)
                 .cornerRadius(12)

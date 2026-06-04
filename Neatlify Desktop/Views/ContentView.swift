@@ -543,6 +543,11 @@ struct PreviewSheet: View {
 struct AccountMenuView: View {
     @EnvironmentObject var userSession: UserSession
     @Binding var isOpen: Bool
+    @State private var showDeleteConfirmation = false
+    @State private var isDeleting = false
+    @State private var showDeleteError = false
+    @State private var deleteErrorMessage = ""
+    @State private var showDeleteSuccess = false
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -622,6 +627,35 @@ struct AccountMenuView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Sign out of your account")
+                .disabled(isDeleting)
+
+                Divider()
+                    .frame(height: 2)
+                    .background(Color.neatlifyDark)
+
+                // Delete Account Button (App Store Guideline 5.1.1(v))
+                Button(action: {
+                    showDeleteConfirmation = true
+                }) {
+                    HStack(spacing: 8) {
+                        if isDeleting {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .progressViewStyle(CircularProgressViewStyle(tint: .neatlifyRed))
+                        } else {
+                            Image(systemName: "trash")
+                        }
+                        Text("Delete Account")
+                    }
+                    .font(.body)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.neatlifyRed)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+                }
+                .buttonStyle(.plain)
+                .help("Permanently delete your account and all associated data")
+                .disabled(isDeleting)
 
                 Spacer()
             }
@@ -635,6 +669,53 @@ struct AccountMenuView: View {
             .shadow(color: Color.neatlifyDark.opacity(0.2), radius: 10)
             .padding(12)
         }
+        .alert("Delete Account?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                deleteAccount()
+            }
+        } message: {
+            Text("This permanently deletes your account and all associated data, including your profile, purchase history, and any remaining credits. This action cannot be undone.")
+        }
+        .alert("Account Deleted", isPresented: $showDeleteSuccess) {
+            Button("OK") {
+                finishDeletion()
+            }
+        } message: {
+            Text("Your account and all associated data have been permanently deleted.")
+        }
+        .alert("Deletion Failed", isPresented: $showDeleteError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(deleteErrorMessage)
+        }
+    }
+
+    private func deleteAccount() {
+        isDeleting = true
+        Task {
+            do {
+                try await AuthenticationService.shared.deleteAccount()
+                await MainActor.run {
+                    isDeleting = false
+                    showDeleteSuccess = true
+                }
+            } catch {
+                await MainActor.run {
+                    isDeleting = false
+                    deleteErrorMessage = error.localizedDescription
+                    showDeleteError = true
+                }
+            }
+        }
+    }
+
+    /// Called after the user acknowledges the deletion. Clears the local session, which flips
+    /// the root view back to the sign-in screen — a clean visual confirmation for review.
+    private func finishDeletion() {
+        userSession.unlinkAccount()
+        isOpen = false
+        Logger.shared.info("Account deleted, returning to authentication screen")
     }
 
     private func signOut() {

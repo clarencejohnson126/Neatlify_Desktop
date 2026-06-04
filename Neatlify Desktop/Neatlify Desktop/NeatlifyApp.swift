@@ -8,8 +8,15 @@
 import SwiftUI
 import AppKit
 
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return true
+    }
+}
+
 @main
 struct NeatlifyApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var userSession = UserSession.load()
     @State private var showPaymentSuccess = false
     @State private var creditsAdded = 0
@@ -49,6 +56,9 @@ struct NeatlifyApp: App {
                            let email = AuthSessionStorage.shared.getUserEmail() {
                             Logger.shared.info("Valid session for \(email), syncing credits...")
                             await userSession.syncCreditsFromServer()
+
+                            // Retry any pending Apple transactions from previous sessions
+                            await StoreKitManager.shared.syncPendingTransactions()
                         } else {
                             Logger.shared.info("No valid session - skipping credit sync")
                             await MainActor.run {
@@ -90,6 +100,8 @@ struct NeatlifyApp: App {
                     if userSession.isAccountLinked {
                         Task {
                             await userSession.syncCreditsFromServer()
+                            // Also retry any pending Apple transactions
+                            await StoreKitManager.shared.syncPendingTransactions()
                         }
                     }
                 }
@@ -155,6 +167,7 @@ struct NeatlifyApp: App {
             return
         }
 
+        #if !APPSTORE
         // Handle payment verification - supports both new and legacy formats
         // New: neatlify://checkout/success?session_id=...
         // Legacy: neatlify://activate?session_id=...
@@ -179,8 +192,10 @@ struct NeatlifyApp: App {
                 await userSession.syncCreditsFromServer()
             }
         }
+        #endif
     }
 
+    #if !APPSTORE
     private func verifyPayment(sessionId: String) {
         Task {
             do {
@@ -224,6 +239,7 @@ struct NeatlifyApp: App {
             }
         }
     }
+    #endif
 
     private func showError(_ message: String) {
         paymentErrorMessage = message

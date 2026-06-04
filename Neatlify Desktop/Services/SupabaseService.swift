@@ -90,8 +90,14 @@ class SupabaseService {
         do {
             let result = try await AuthenticationService.shared.refreshToken(refreshToken)
 
-            if let newAccessToken = result.accessToken {
+            if let newAccessToken = result.accessToken ?? result.session?.accessToken {
                 AuthSessionStorage.shared.saveAccessToken(newAccessToken)
+                // Refresh-token rotation is enabled on this project, so the refresh call
+                // returns a NEW refresh token and revokes the old one. Persist it, otherwise
+                // the next refresh (and the delete-account 401 fallback) uses a revoked token.
+                if let newRefreshToken = result.refreshToken ?? result.session?.refreshToken {
+                    AuthSessionStorage.shared.saveRefreshToken(newRefreshToken)
+                }
                 Logger.shared.info("✅ Access token refreshed")
             }
         } catch {
@@ -418,7 +424,8 @@ class SupabaseService {
         }
 
         if httpResponse.statusCode != 200 {
-            Logger.shared.error("Apple transaction verification error: \(httpResponse.statusCode)")
+            let responseBody = String(data: data, encoding: .utf8) ?? "no body"
+            Logger.shared.error("Apple transaction verification error: \(httpResponse.statusCode) - \(responseBody)")
             throw SupabaseError.apiError(statusCode: httpResponse.statusCode)
         }
 
@@ -427,9 +434,13 @@ class SupabaseService {
         if result.success {
             return AppleTransactionResult(
                 creditsAdded: result.creditsAdded ?? 0,
-                creditsTotal: result.creditsTotal ?? 0
+                // Pass through nil when the server omitted the field (e.g. profile lookup
+                // missed). Callers must NOT treat a missing total as "balance is 0".
+                creditsTotal: result.creditsTotal
             )
         } else {
+            let errorMsg = result.error ?? "Transaction verification failed"
+            Logger.shared.error("Apple transaction verification rejected: \(errorMsg)")
             throw SupabaseError.apiError(statusCode: 400)
         }
     }
@@ -450,6 +461,6 @@ class SupabaseService {
 
     struct AppleTransactionResult {
         let creditsAdded: Int
-        let creditsTotal: Int
+        let creditsTotal: Int?
     }
 }

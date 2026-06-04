@@ -156,13 +156,6 @@ class PaymentService {
         let url: String
     }
 
-    @MainActor
-    func contactEnterprise() {
-        if let url = URL(string: "mailto:hello@neatlify.app?subject=Enterprise%20Inquiry") {
-            NSWorkspace.shared.open(url)
-        }
-    }
-
     private func openCheckout(url: String) {
         guard let checkoutURL = URL(string: url) else {
             Logger.shared.error("Invalid checkout URL")

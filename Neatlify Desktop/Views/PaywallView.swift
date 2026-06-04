@@ -119,7 +119,8 @@ struct PaywallView: View {
                 stripePacksSection
                 #endif
 
-                // Promo Code Section
+                // Promo Code Section (DMG only - App Store requires IAP offer codes)
+                #if !APPSTORE
                 VStack(spacing: 12) {
                     Button(action: {
                         withAnimation {
@@ -147,7 +148,7 @@ struct PaywallView: View {
                                     .textFieldStyle(.plain)
                                     .font(.system(size: 14, weight: .medium))
                                     .padding(12)
-                                    .background(Color.white)
+                                    .background(Color(NSColor.controlBackgroundColor))
                                     .cornerRadius(8)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 8)
@@ -204,6 +205,7 @@ struct PaywallView: View {
                         )
                     }
                 }
+                #endif
 
                 // Close button
                 Button(action: {
@@ -224,8 +226,19 @@ struct PaywallView: View {
         .alert("Account Required", isPresented: $showAccountRequiredAlert) {
             Button("OK", role: .cancel) { }
         } message: {
+            #if APPSTORE
+            Text("Please sign in or create an account before purchasing credits.")
+            #else
             Text("Please sign in or create an account before purchasing credits. Visit neatlify.com to create your account.")
+            #endif
         }
+        #if APPSTORE
+        .alert("Credits Added!", isPresented: $storeKit.showPurchaseSuccess) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("\(storeKit.lastPurchaseCredits) credits have been added to your account.")
+        }
+        #endif
         .sheet(isPresented: $showLinkSheet) {
             LinkAccountView(userSession: userSession, isPresented: $showLinkSheet)
         }
@@ -233,13 +246,16 @@ struct PaywallView: View {
 
     #if APPSTORE
     private func purchaseWithStoreKit(_ product: StoreKit.Product) {
-        // Require account to be linked before purchasing
         guard userSession.isAccountLinked else {
             showAccountRequiredAlert = true
             return
         }
         Task {
-            _ = await storeKit.purchase(product)
+            let transaction = await storeKit.purchase(product)
+            if transaction != nil {
+                // Sync credits from server to ensure UI reflects the purchase
+                await userSession.syncCreditsFromServer()
+            }
         }
     }
     #else
@@ -251,6 +267,7 @@ struct PaywallView: View {
     }
     #endif
 
+    #if !APPSTORE
     private func redeemPromoCode() {
         guard !promoCode.isEmpty else { return }
 
@@ -307,6 +324,8 @@ struct PaywallView: View {
             }
         }
     }
+
+    #endif
 
 // MARK: - StoreKit Section (App Store)
 
@@ -374,8 +393,6 @@ struct PaywallView: View {
                         purchaseWithStoreKit(product)
                     }
                 }
-
-                enterpriseButton
 
                 // Restore Purchases Button
                 Button(action: {
@@ -450,56 +467,9 @@ struct PaywallView: View {
             ) {
                 purchasePack(.business)
             }
-
-            enterpriseButton
         }
     }
     #endif
-
-    // MARK: - Enterprise Button (shared)
-
-    private var enterpriseButton: some View {
-        let blueColor = Color(red: 0.2, green: 0.4, blue: 0.9)
-        return Button(action: {
-            PaymentService.shared.contactEnterprise()
-        }) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text("Enterprise")
-                            .font(.headline)
-                            .fontWeight(.black)
-                            .foregroundColor(.neatlifyDark)
-                        Text("Unlimited")
-                            .font(.caption)
-                            .fontWeight(.black)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(blueColor)
-                            .cornerRadius(4)
-                    }
-                    Text("Custom volume pricing for teams")
-                        .font(.caption)
-                        .foregroundColor(.neatlifyDark.opacity(0.6))
-                }
-                Spacer()
-                Text("Contact Us")
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                    .foregroundColor(blueColor)
-            }
-            .padding(16)
-            .background(blueColor.opacity(0.1))
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(blueColor, lineWidth: 3)
-            )
-            .shadow(color: blueColor.opacity(0.3), radius: 6, x: 0, y: 4)
-        }
-        .buttonStyle(.plain)
-    }
 }
 
 #if APPSTORE
